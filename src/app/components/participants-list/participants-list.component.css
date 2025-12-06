@@ -1,0 +1,249 @@
+    .participants-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .participant-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .participant-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Current User Highlight */
+    .participant-row.current-user {
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.05) 0%, transparent 100%);
+        /* border-left removed */
+    }
+
+    /* Avatar Styles */
+    .avatar-container {
+        position: relative;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-deep);
+        /* Dark background behind avatar */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        border: 2px solid #334155;
+        overflow: hidden;
+    }
+
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Gradient Border for Current User Avatar */
+    .participant-row.current-user .avatar {
+        border: 2px solid transparent;
+        background: linear-gradient(#0f172a, #0f172a) padding-box,
+            linear-gradient(135deg, #22d3ee, #e879f9) border-box;
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+    }
+
+    /* Status Dot Removed */
+
+    /* Text Info */
+    .player-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.2;
+    }
+
+    .name {
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .you-tag {
+        .participants-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .participant-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .participant-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Current User Highlight */
+        .participant-row.current-user {
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.05) 0%, transparent 100%);
+            /* border-left removed */
+        }
+
+        /* Avatar Styles */
+        .avatar-container {
+            position: relative;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-deep);
+            /* Dark background behind avatar */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            border: 2px solid #334155;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Gradient Border for Current User Avatar */
+        .participant-row.current-user .avatar {
+            border: 2px solid transparent;
+            background: linear-gradient(#0f172a, #0f172a) padding-box,
+                linear-gradient(135deg, #22d3ee, #e879f9) border-box;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        }
+
+        /* Status Dot Removed */
+
+        /* Text Info */
+        .player-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .name {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .you-tag {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-left: 4px;
+        }
+
+        /* Status Label Removed */
+
+        /* Folding Indicator Removed */
+
+        /* Vote Indicator */
+        .vote-indicator {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vote-hidden {
+            width: 28px;
+            height: 28px;
+            background: #22d3ee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f172a;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .vote-hidden svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .vote-value {
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #22d3ee, #e879f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.5));
+        }
+
+        /* Loading/Thinking Animation */
+        .dot {
+            width: 4px;
+            height: 4px;
+            background-color: #475569;
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
