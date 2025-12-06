@@ -1,0 +1,25 @@
+    .task-section {
+        margin-bottom: 3rem;
+    }
+
+    h2 {
+        color: var(--text-primary);
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .task-description-card {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        max-width: 100%;
+
+        /* Glassmorphism */
+        background: rgba(17, 34, 64, 0.4);
+        border: 1px solid var(--border-glass);
+        padding: 1.5rem;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }

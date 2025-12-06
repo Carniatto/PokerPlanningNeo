@@ -1,0 +1,274 @@
+    :host {
+        display: block;
+        height: 100vh;
+        width: 100vw;
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+    }
+
+    .how-it-works-container {
+        position: relative;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+    }
+
+    /* --- Carousel --- */
+    .carousel-viewport {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+
+    .slides-wrapper {
+        display: flex;
+        height: 100%;
+        width: 100%;
+        transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .slide {
+        flex: 0 0 100%;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        box-sizing: border-box;
+    }
+
+    /* --- Split Card --- */
+    .split-card {
+        display: flex;
+        width: 90%;
+        max-width: 1200px;
+        height: 70vh;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        transition: all 0.3s ease;
+        background: rgba(17, 34, 64, 0.6);
+        border: 1px solid var(--border-glass);
+        backdrop-filter: blur(16px);
+    }
+
+    /* --- Pane: Visual (Left) --- */
+    .visual-pane {
+        flex: 1;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 2rem;
+        overflow: hidden;
+    }
+
+    .glow-effect {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, var(--neon-blue) 0%, transparent 70%);
+        opacity: 0.2;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .slide-image {
+        width: 100%;
+        max-width: 450px;
+        height: auto;
+        object-fit: contain;
+        z-index: 1;
+        filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.4));
+        animation: float 6s ease-in-out infinite;
+    }
+
+    /* --- Pane: Content (Right) --- */
+    .content-pane {
+        flex: 1;
+        padding: 4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .slide-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin: 0 0 1.5rem 0;
+        line-height: 1.1;
+        background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.2));
+    }
+
+    .slide-description {
+        font-size: 1.25rem;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin: 0;
+    }
+
+    /* --- Navigation & Controls --- */
+    .navigation-overlay {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        transform: translateY(-50%);
+        display: flex;
+        justify-content: space-between;
+        padding: 0 2rem;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .nav-btn {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-glass);
+        color: white;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(4px);
+    }
+
+    .nav-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.15);
+        transform: scale(1.05);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+    }
+
+    /* --- Indicators --- */
+    .indicators {
+        position: absolute;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 1rem;
+        z-index: 20;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--text-secondary);
+        opacity: 0.3;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 0;
+    }
+
+    .dot.active {
+        background: var(--neon-cyan);
+        opacity: 1;
+        transform: scale(1.3);
+        box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    /* --- Close Button --- */
+    .close-btn {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        width: 48px;
+        height: 48px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+        transform: rotate(90deg);
+    }
+
+    .material-icons {
+        font-size: 24px;
+    }
+
+    .nav-btn .material-icons {
+        font-size: 28px;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .split-card {
+            flex-direction: column;
+            height: 85vh;
+            width: 95%;
+        }
+
+        .visual-pane {
+            flex: 0 0 40%;
+            padding: 1rem;
+        }
+
+        .content-pane {
+            padding: 2rem;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-title {
+            font-size: 2rem;
+        }
+
+        .slide-description {
+            font-size: 1rem;
+        }
+
+        .nav-btn {
+            width: 48px;
+            height: 48px;
+        }
+    }
