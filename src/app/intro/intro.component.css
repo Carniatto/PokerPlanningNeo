@@ -1,0 +1,117 @@
+.intro-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #020c1b;
+    /* Hardcoded dark navy/black for safety */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    /* Extremely high z-index */
+    color: var(--text-main);
+    font-family: 'Inter', sans-serif;
+}
+
+.content {
+    text-align: center;
+    animation: fadeIn 1s ease-out;
+}
+
+.logo-large {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 2rem;
+    /* Removed strong neon glow for cleaner look */
+    filter: drop-shadow(0 0 10px rgba(30, 136, 229, 0.3));
+    animation: float 6s ease-in-out infinite;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    /* Removed gradient text for solid primary color */
+}
+
+.neo-hero-logo {
+    height: 52px;
+    vertical-align: bottom;
+    margin: 0 4px;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.6));
+    transform: translateY(2px);
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+}
+
+.features {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+}
+
+.icon {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.enter-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+}
+
+.enter-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(30, 136, 229, 0.4);
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
