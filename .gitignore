@@ -42,3 +42,6 @@ Thumbs.db
 # Angular CLI
 .angular/
 firebase-debug.log
+
+# Firebase
+.firebase/
