@@ -1,16 +1,13 @@
-import { Component, inject, OnInit, signal, effect, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, effect, computed, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../game.service';
 import { PlayerCardComponent } from '../components/player-card/player-card.component';
 import { VotingCardComponent } from '../components/voting-card/voting-card.component';
-import { HostControlsComponent } from '../components/host-controls/host-controls.component';
-import { ParticipantsListComponent } from '../components/participants-list/participants-list.component';
 import { TaskDescriptionComponent } from '../components/task-description/task-description.component';
-import { PlayerHeaderComponent } from '../components/player-header/player-header.component';
-import { RoundResultComponent } from '../components/round-result/round-result.component';
 import { RoomHeaderComponent } from '../components/room-header/room-header.component';
+import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.component';
 
 @Component({
   selector: 'app-room',
@@ -20,11 +17,9 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
     FormsModule,
     PlayerCardComponent,
     VotingCardComponent,
-    HostControlsComponent,
-    ParticipantsListComponent,
     TaskDescriptionComponent,
-    RoundResultComponent,
-    RoomHeaderComponent
+    RoomHeaderComponent,
+    RoomSidebarComponent
   ],
   template: `
     @if (isLoading()) {
@@ -39,69 +34,47 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
           <!-- Main Content (Left) -->
           <main class="main-content">
             <app-room-header [roomId]="roomId || ''" 
+                            [isHost]="true"
                             (endSession)="leaveRoom()" 
                             (copyLink)="copyInviteLink()">
             </app-room-header>
 
-            <div class="content-grid">
-              <!-- Left Column: Task & Players -->
-              <div class="left-column">
-                <app-task-description></app-task-description>
+            <app-task-description></app-task-description>
 
-                <section class="players-section">
-                  <h2>Players</h2>
-                  <div class="players-grid">
-                    @for (player of players(); track player.id) {
-                      <app-player-card [player]="player" [isRevealed]="areCardsRevealed()"></app-player-card>
-                    }
-                  </div>
-                </section>
-                
-                <section class="deck-section">
-                    <h2>Your Deck</h2>
-                    <div class="cards-row">
-                        <div class="poker-card">1</div>
-                        <div class="poker-card">2</div>
-                        <div class="poker-card">3</div>
-                        <div class="poker-card">5</div>
-                        <div class="poker-card">8</div>
-                    </div>
-                </section>
-              </div>
-
-              <!-- Right Column: Host Sidebar (Consolidated) -->
-              <aside class="room-sidebar">
-                <!-- User Profile (formerly Sidebar) -->
-                <div class="sidebar-header">
-                  <div class="user-profile">
-                    <div class="avatar">{{ userName.charAt(0) }}</div>
-                    <div class="user-info">
-                      <span class="name">{{ userName }}</span>
-                      <span class="role">Host View</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Host Controls & Results -->
-                <app-host-controls (reveal)="revealVotes()" (reset)="startNewRound()"></app-host-controls>
-                
-                @if (areCardsRevealed()) {
-                  <app-round-result 
-                    [isHost]="true" 
-                    [players]="players()" 
-                    (nextRound)="startNewRound()">
-                  </app-round-result>
+            <section class="players-section">
+              <h2>Players</h2>
+              <div class="players-grid">
+                @for (player of players(); track player.id) {
+                  <app-player-card [player]="player" [isRevealed]="areCardsRevealed()"></app-player-card>
                 }
-
-                <!-- Participants List -->
-                <app-participants-list 
-                  [players]="players()" 
-                  [areCardsRevealed]="areCardsRevealed()"
-                  [currentUserId]="currentUser()?.uid">
-                </app-participants-list>
-              </aside>
-            </div>
+              </div>
+            </section>
+            
+            <section class="deck-section">
+                <h2>Your Deck</h2>
+                <div class="cards-row">
+                    @for (value of votingValues; track value) {
+                      <app-voting-card 
+                        class="host-voting-card"
+                        [value]="value" 
+                        [selected]="selectedValue() === value"
+                        (select)="selectVote($event)"
+                        size="small">
+                      </app-voting-card>
+                    }
+                </div>
+            </section>
           </main>
+
+          <!-- Right Column: Host Sidebar (Direct child of flex container) -->
+          <app-room-sidebar 
+            [isHost]="true" 
+            [players]="sortedPlayers()" 
+            [areCardsRevealed]="areCardsRevealed()"
+            [currentUserId]="currentUser()?.uid"
+            (reveal)="revealVotes()"
+            (reset)="startNewRound()">
+          </app-room-sidebar>
         </div>
       }
 
@@ -111,6 +84,12 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
           <div class="player-content-wrapper">
             <!-- Main Voting Area -->
             <main class="voting-area">
+              <app-room-header [roomId]="roomId || ''" 
+                              [isHost]="false"
+                              (endSession)="leaveRoom()" 
+                              (copyLink)="copyInviteLink()">
+              </app-room-header>
+
               <div class="task-header">
                 <h1>Estimating: Design the user authentication flow</h1>
                 @if (areCardsRevealed()) {
@@ -132,29 +111,18 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
             </main>
 
             <!-- Right Sidebar -->
-            <aside class="room-sidebar">
-              <div class="participants-section">
-                <h3>👥 Participants ({{ players().length }})</h3>
-                
-                <div class="participant-list">
-                <div class="participant-list">
-                  <app-participants-list 
-                      [players]="sortedPlayers()" 
-                      [areCardsRevealed]="areCardsRevealed()"
-                      [currentUserId]="currentUser()?.uid">
-                  </app-participants-list>
-                </div>
-                </div>
-              </div>
-
-              @if (areCardsRevealed()) {
-                <app-round-result 
-                                [isHost]="isHost()" 
-                                [players]="players()"
-                                (nextRound)="startNewRound()">
-                </app-round-result>
-              }
-            </aside>
+            <!-- Right Sidebar -->
+            <app-room-sidebar 
+               [isHost]="false"
+               [players]="sortedPlayers()" 
+               [areCardsRevealed]="areCardsRevealed()"
+               [currentUserId]="currentUser()?.uid">
+               <div class="footer-content">
+                  <div class="sidebar-footer" style="margin-top: auto;">
+                     <button class="btn-leave-room" (click)="leaveRoom()">Leave Room</button>
+                  </div>
+               </div>
+            </app-room-sidebar>
           </div>
         </div>
       }
@@ -183,9 +151,7 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
 
     /* Main Content */
     .main-content { flex: 1; padding: 2rem 3rem; overflow-y: auto; }
-    
-    .content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; }
-    
+        
     .room-sidebar {
       width: 320px;
       background-color: #020c1b;
@@ -196,44 +162,19 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
       gap: 1.5rem;
     }
 
-    .sidebar-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
-    }
-
-    .user-profile {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .avatar {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--neon-blue, #00f3ff), var(--neon-purple, #bc13fe));
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 1.2rem; color: white;
-    }
-
-    .user-info { display: flex; flex-direction: column; }
-    .user-info .name { font-weight: 600; font-size: 0.95rem; }
-    .user-info .role { font-size: 0.75rem; color: #8892b0; }
-
-    
     .players-grid { display: flex; gap: 1.5rem; flex-wrap: wrap; }
     
     .deck-section { margin-top: 3rem; }
-    .cards-row { display: flex; gap: 1rem; }
-    .poker-card {
-      width: 60px; height: 90px; background-color: #112240; border: 2px solid #233554;
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+    .cards-row { 
+      display: flex; 
+      gap: 0.75rem; 
+      flex-wrap: wrap;
     }
-    .poker-card:hover { transform: translateY(-5px); border-color: var(--primary-color); }
+    
+    .host-voting-card {
+      width: 50px;
+      /* Height is auto determined by aspect-ratio 2/3 in component */
+    }
 
     /* PLAYER VIEW SPECIFIC STYLES */
     .player-layout {
@@ -274,32 +215,6 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
     }
 
     .participant-list { display: flex; flex-direction: column; gap: 1rem; }
-    .participant-item {
-      display: flex; align-items: center; gap: 1rem;
-      padding: 0.75rem; border-radius: 0.5rem;
-      transition: background-color 0.2s;
-      color: white; /* Ensure text visible */
-      border: 1px solid transparent; /* Prepare for border */
-    }
-    .participant-item.current-user { background-color: rgba(37, 99, 235, 0.1); }
-    
-    .participant-item.current-user-highlight {
-      border-color: var(--neon-cyan, #00ff9d);
-      box-shadow: 0 0 10px rgba(0, 255, 157, 0.2), inset 0 0 5px rgba(0, 255, 157, 0.1);
-      background: linear-gradient(90deg, rgba(0, 255, 157, 0.05), transparent);
-    }
-    
-    .p-avatar {
-      width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
-      background-color: #233554; display: flex; align-items: center; justify-content: center;
-    }
-    .p-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .p-name { flex: 1; font-weight: 500; font-size: 0.9rem; }
-    .p-vote {
-      background-color: #1e293b; padding: 0.25rem 0.5rem; border-radius: 0.25rem;
-      font-weight: bold; font-size: 0.8rem;
-    }
-
     /* Modal Styles */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -418,7 +333,7 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
     }
   `]
 })
-export class RoomComponent implements OnInit {
+export class RoomComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private gameService = inject(GameService);
@@ -491,12 +406,11 @@ export class RoomComponent implements OnInit {
     }
   }
 
-  get userName() {
-    const user = this.currentUser();
-    return user?.isAnonymous ? 'Guest' : user?.displayName || 'Guest';
-  }
 
-  leaveRoom() {
+  async leaveRoom() {
+    if (this.roomId && this.currentUser()) { // Check current user
+      await this.gameService.leaveRoom(this.roomId, this.currentUser()!.uid);
+    }
     this.router.navigate(['/']);
   }
 
@@ -525,6 +439,15 @@ export class RoomComponent implements OnInit {
     this.gameService.revealCards(false);
     this.gameService.resetVotes();
     this.selectedValue.set(null);
+  }
+
+  @HostListener('window:beforeunload')
+  async onBeforeUnload() {
+    await this.leaveRoom();
+  }
+
+  ngOnDestroy() {
+    this.leaveRoom();
   }
 
   copyInviteLink() {

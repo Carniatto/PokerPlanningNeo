@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, effect } from '@angular/core';
-import { Firestore, doc, docData, setDoc, updateDoc, arrayUnion, arrayRemove, deleteField } from '@angular/fire/firestore';
+import { Firestore, doc, docData, setDoc, updateDoc, arrayUnion, arrayRemove, deleteField, getDoc } from '@angular/fire/firestore';
 import { Auth, signInAnonymously, user, User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { Observable, Subscription, of } from 'rxjs';
@@ -17,6 +17,8 @@ export interface Room {
     hostId: string;
     areCardsRevealed: boolean;
     players: Player[];
+    createdAt?: number;
+    lastActiveAt?: number;
 }
 
 @Injectable({
@@ -100,10 +102,13 @@ export class GameService {
                 vote: null
             };
 
+            const now = Date.now();
             const newRoom: Room = {
                 hostId: user.uid,
                 areCardsRevealed: false,
-                players: [hostPlayer]
+                players: [hostPlayer],
+                createdAt: now,
+                lastActiveAt: now
             };
 
             console.log('Setting document in Firestore...');
@@ -153,10 +158,35 @@ export class GameService {
         }
     }
 
+    async leaveRoom(roomId: string, userId: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedPlayers = roomData.players.filter(p => p.id !== userId);
+
+            // If no players left, maybe delete room? For now just remove player.
+            // If host leaves, logic might need to reassign host, but that's out of scope for this task unless specified.
+            // The requirement is just "make possible for the user to leave the room".
+
+            await updateDoc(roomRef, {
+                players: updatedPlayers,
+                lastActiveAt: Date.now()
+            });
+
+            // Clear local state
+            this.currentRoomId.set(null);
+            this.currentRoomData.set(null);
+            this.roomSubscription?.unsubscribe();
+        }
+    }
+
     private async addPlayerToRoom(roomId: string, player: Player) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         await updateDoc(roomRef, {
-            players: arrayUnion(player)
+            players: arrayUnion(player),
+            lastActiveAt: Date.now()
         });
     }
 
@@ -175,14 +205,20 @@ export class GameService {
         });
 
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, { players: updatedPlayers });
+        await updateDoc(roomRef, {
+            players: updatedPlayers,
+            lastActiveAt: Date.now()
+        });
     }
 
     async revealCards(reveal: boolean) {
         const roomId = this.currentRoomId();
         if (!roomId) return;
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, { areCardsRevealed: reveal });
+        await updateDoc(roomRef, {
+            areCardsRevealed: reveal,
+            lastActiveAt: Date.now()
+        });
     }
 
     async resetVotes() {
@@ -199,7 +235,8 @@ export class GameService {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         await updateDoc(roomRef, {
             players: updatedPlayers,
-            areCardsRevealed: false
+            areCardsRevealed: false,
+            lastActiveAt: Date.now()
         });
     }
 
