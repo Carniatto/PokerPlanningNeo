@@ -14,13 +14,18 @@ import { CommonModule } from '@angular/common';
           <a href="javascript:void(0)" (click)="onCopyLink()" class="invite-link">🔗 Copy Invite Link</a>
         </div>
       </div>
-      <button class="btn-end-session" (click)="onEndSession()">End Session</button>
+      @if (isHost()) {
+        <button class="btn-end-session" (click)="onEndSession()">End Session</button>
+      } @else {
+        <button class="btn-end-session" (click)="onEndSession()">Leave Room</button>
+      }
     </header>
   `,
   styleUrl: './room-header.component.css'
 })
 export class RoomHeaderComponent {
   roomId = input.required<string>();
+  isHost = input<boolean>(false);
   endSession = output<void>();
   copyLink = output<void>();
 

@@ -33,7 +33,29 @@ import { Player } from '../../game.service';
           <div class="vote-indicator">
             @if (player.vote) {
                @if (areCardsRevealed()) {
-                 <span class="vote-value">{{ player.vote }}</span>
+                 @if (player.vote === '☕') {
+                   <div class="vote-icon-wrapper">
+                     <svg class="vote-svg" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                          <linearGradient id="listNeonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#e879f9;stop-opacity:1" />
+                          </linearGradient>
+                        </defs>
+                        <g transform="translate(50, 70) scale(0.85) translate(-2.5, 0)">
+                           <path d="M -25,-10 L -25,20 Q -25,40 0,40 Q 25,40 25,20 L 25,-10 Z" class="cup-body" />
+                           <path d="M 25,0 Q 40,0 40,15 Q 40,30 25,30" class="cup-handle" />
+                           <g class="steam">
+                             <path d="M -15,-20 Q -10,-30 -15,-40" />
+                             <path d="M 0,-20 Q 5,-30 0,-40" />
+                             <path d="M 15,-20 Q 20,-30 15,-40" />
+                           </g>
+                        </g>
+                     </svg>
+                   </div>
+                 } @else {
+                   <span class="vote-value">{{ player.vote }}</span>
+                 }
                } @else {
                  <span class="vote-hidden">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">

@@ -18,6 +18,16 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
+.vote-card.small {
+    border-radius: 8px;
+    border-width: 1.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* Font size will be handled by container or scaling, 
+       but let's adjust it primarily relative to the container size if needed,
+       or just rely on aspect-ratio and width from parent. 
+       However, the SVG scales, so mainly border/radius needs adjustment. */
+}
+
 /* Tech pattern overlay */
 .vote-card::before {
     content: '';
@@ -51,6 +61,13 @@
         0 0 20px rgba(217, 70, 239, 0.5),
         inset 0 0 20px rgba(217, 70, 239, 0.2);
     transform: translateY(-8px) scale(1.05);
+}
+
+.vote-card.small.selected {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow:
+        0 0 10px rgba(217, 70, 239, 0.5),
+        inset 0 0 10px rgba(217, 70, 239, 0.2);
 }
 
 .card-content {

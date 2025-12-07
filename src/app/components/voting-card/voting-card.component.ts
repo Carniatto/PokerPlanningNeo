@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="vote-card" 
          [class.selected]="selected()"
+         [class.small]="size() === 'small'"
          (click)="onSelect()">
       <svg class="card-content" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet">
         <defs>
@@ -44,6 +45,7 @@ import { CommonModule } from '@angular/common';
 })
 export class VotingCardComponent {
   value = input.required<string>();
+  size = input<'normal' | 'small'>('normal');
   selected = input(false);
   select = output<string>();
 

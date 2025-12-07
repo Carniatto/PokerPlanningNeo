@@ -66,8 +66,23 @@ export const cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").on
 
     const players = newData.players || [];
     if (players.length === 0) {
-        console.log(`Room ${context.params.roomId} is empty. Deleting...`);
-        await change.after.ref.delete();
+        console.log(`Room ${context.params.roomId} is empty. Waiting 20s grace period...`);
+        // Grace period for refresh/reconnection
+        await new Promise(resolve => setTimeout(resolve, 20000));
+
+        // Re-fetch the latest state
+        const currentDoc = await change.after.ref.get();
+        if (!currentDoc.exists) return null; // Already deleted
+
+        const currentData = currentDoc.data();
+        const currentPlayers = currentData?.players || [];
+
+        if (currentPlayers.length === 0) {
+            console.log(`Room ${context.params.roomId} still empty after grace period. Deleting...`);
+            await change.after.ref.delete();
+        } else {
+            console.log(`Room ${context.params.roomId} recovered (player joined). Aborting delete.`);
+        }
     }
     return null;
 });
