@@ -93,64 +93,12 @@
 }
 
 /* SVG Icon Styles (Coffee Cup) */
-.cup-body {
-    fill: rgba(255, 255, 255, 0.3);
-    transition: all 0.3s ease;
-}
+/* Moved to IconComponent */
 
-.cup-handle,
-.steam path {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.3);
-    stroke-width: 3px;
-    stroke-linecap: round;
-    transition: all 0.3s ease;
-}
-
-/* Selected State for Icon */
-.vote-card.selected .cup-body {
-    fill: none;
-    stroke: url(#neonGradient);
-    stroke-width: 3px;
-    filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.5));
-}
-
-.vote-card.selected .cup-handle {
-    stroke: url(#neonGradient);
-    filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.5));
-}
-
-.vote-card.selected .steam path {
-    stroke: url(#neonGradient);
-    filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.5));
-    animation: steam-rise 2s infinite ease-in-out;
-}
-
-.vote-card.selected .steam path:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.vote-card.selected .steam path:nth-child(2) {
-    animation-delay: 0.5s;
-}
-
-.vote-card.selected .steam path:nth-child(3) {
-    animation-delay: 1s;
-}
-
-@keyframes steam-rise {
-    0% {
-        transform: translateY(0);
-        opacity: 0.5;
-    }
-
-    50% {
-        transform: translateY(-5px);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(-10px);
-        opacity: 0;
-    }
+.icon-wrapper {
+    width: 60%;
+    height: 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

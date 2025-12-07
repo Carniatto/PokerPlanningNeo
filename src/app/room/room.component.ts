@@ -359,7 +359,15 @@ export class RoomComponent implements OnInit, OnDestroy {
 
   // Player View State
   votingValues = ['0', '1', '2', '3', '5', '8', '13', '20', '?', '☕'];
-  selectedValue = signal<string | null>(null);
+
+  // Computed selected value from server state (Single Source of Truth)
+  selectedValue = computed(() => {
+    const user = this.currentUser();
+    const players = this.players();
+    if (!user || !players) return null;
+    const me = players.find(p => p.id === user.uid);
+    return me?.vote || null;
+  });
 
   // Name Prompt State
   showNamePrompt = signal(true);
@@ -368,22 +376,31 @@ export class RoomComponent implements OnInit, OnDestroy {
   // Loading State
   isLoading = signal(true);
 
+  // Auto-Join State
+  isAutoJoining = signal(false);
+
   constructor() {
     effect(() => {
       const roomData = this.gameService.currentRoomData();
       const user = this.currentUser();
-      const roomId = this.gameService.currentRoomId();
 
-      // We only stop loading when we have attempted to join a room (ID is set)
-      // and we have a user (auth resolved)
-      // and we have received a response for the room data (even if null)
-      // BUT: GameService init signals are null. 
-      // We know loading is done when we have both user and roomData (if room exists).
-
-      if (user && roomData) {
+      // We only stop loading when we have both user and roomData (if room exists).
+      // We only stop loading when we have both user and roomData (if room exists).
+      // Also prevent modal flash if we are deliberately leaving
+      if (user && roomData && !this.isLeaving) {
         const me = roomData.players.find(p => p.id === user.uid);
-        this.showNamePrompt.set(!me);
-        this.isLoading.set(false);
+
+        if (me) {
+          // User is in the room -> Done.
+          this.isAutoJoining.set(false);
+          this.showNamePrompt.set(false);
+          this.isLoading.set(false);
+        } else if (!this.isAutoJoining()) {
+          // User NOT in room and NOT auto-joining -> Show Prompt.
+          this.showNamePrompt.set(true);
+          this.isLoading.set(false);
+        }
+        // If isAutoJoining() is true and !me, we STAY LOADING (waiting for write to reflect).
       }
     }, { allowSignalWrites: true });
   }
@@ -396,21 +413,44 @@ export class RoomComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Prefill name from localStorage
+    // Prefill name from localStorage and Auto-Join
     const savedName = localStorage.getItem('POKER_USER_NAME');
     if (savedName) {
       this.nameInput.set(savedName);
     }
 
-    // Attempt to rejoin if we have an ID but no subscription
+    // Attempt to join/rejoin
     if (!this.gameService.currentRoomId()) {
-      this.gameService.joinRoom(this.roomId);
+      if (savedName) {
+        this.isAutoJoining.set(true); // Suppress modal, show loader
+
+        // Fallback timeout in case auto-join stalls
+        setTimeout(() => {
+          if (this.isAutoJoining()) {
+            console.warn('Auto-join timed out, showing prompt.');
+            this.isAutoJoining.set(false);
+            // Effect will pick this up: isAutoJoining false + !me -> show prompt.
+          }
+        }, 4000);
+      }
+
+      this.gameService.joinRoom(this.roomId, savedName || undefined)
+        .catch(err => {
+          console.error('Join room failed', err);
+          this.isAutoJoining.set(false);
+        });
     }
   }
 
 
+  // Flag to handle manual leave vs page unload
+  isLeaving = false;
+
   async leaveRoom() {
-    if (this.roomId && this.currentUser()) { // Check current user
+    this.isLeaving = true;
+    this.isLoading.set(true); // Hide UI immediately to prevent modal flash
+
+    if (this.roomId && this.currentUser()) {
       await this.gameService.leaveRoom(this.roomId, this.currentUser()!.uid);
     }
     this.router.navigate(['/']);
@@ -429,7 +469,8 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   selectVote(value: string) {
-    this.selectedValue.set(value);
+    // Optimistic updates handled by server latency or could add local override later.
+    // For now, rely on server source of truth to ensure reset works perfectly.
     this.gameService.vote(value);
   }
 
@@ -440,36 +481,31 @@ export class RoomComponent implements OnInit, OnDestroy {
   startNewRound() {
     this.gameService.revealCards(false);
     this.gameService.resetVotes();
-    this.selectedValue.set(null);
+    // selectedValue auto-updates via computed
   }
 
   @HostListener('window:beforeunload')
   async onBeforeUnload() {
-    if (this.roomId && this.currentUser()) {
+    if (!this.isLeaving && this.roomId && this.currentUser()) {
       await this.gameService.setPlayerStatus(this.roomId, this.currentUser()!.uid, 'Disconnected');
     }
   }
 
   ngOnDestroy() {
-    // Ideally we distinguish between "Navigate Away" (which implies staying connected?) 
-    // vs "Close Tab". But for now, as per plan, we mark as Disconnected during navigation too.
-    // If the user navigates back, they will re-subscribe. 
-    // Actually, "Navigate Away" IS leaving the room component. 
-    // If they go to "Home", they effectively left the room.
-    // The requirement said: "When a user closes tab/refreshes... Mark them as Disconnected".
-    // If I click "Home", I am leaving. 
-    // If I want to leave "for real", I click "Leave Room".
-    // "Leave Room" button calls leaveRoom() -> immediate delete.
-    // This hook is for implicit leaving.
-    if (this.roomId && this.currentUser()) {
+    // Check isLeaving to avoid overwriting clean exit with "Disconnected"
+    if (!this.isLeaving && this.roomId && this.currentUser()) {
       this.gameService.setPlayerStatus(this.roomId, this.currentUser()!.uid, 'Disconnected');
     }
+    // Always clear local subscription/ID when component is destroyed so we re-init correctly on return
+    this.gameService.cleanupLocalGameState();
   }
 
   copyInviteLink() {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      alert('Invite link copied to clipboard!');
+      // You might want a toast notification here instead of alert
+      // alert('Invite link copied to clipboard!'); 
+      console.log('Invite link copied');
     });
   }
 }

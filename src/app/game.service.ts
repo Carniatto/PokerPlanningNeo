@@ -155,15 +155,40 @@ export class GameService {
             }
         });
 
-        // If userName is provided, add player to the room
+        // Add or Update player in the room
         if (userName) {
-            const player: Player = {
-                id: user.uid,
-                name: userName,
-                status: 'Waiting...',
-                vote: null
-            };
-            await this.addPlayerToRoom(roomId, player);
+            // We need to fetch the latest state to check duplications
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+                const roomData = roomSnap.data() as Room;
+                const existingPlayer = roomData.players.find(p => p.id === user!.uid);
+
+                if (existingPlayer) {
+                    // Update existing player (Name, Active Status)
+                    const updatedPlayers = roomData.players.map(p => {
+                        if (p.id === user!.uid) {
+                            return { ...p, name: userName, status: 'Waiting...' as const };
+                        }
+                        return p;
+                    });
+                    await updateDoc(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
+                } else {
+                    // Add new player
+                    const player: Player = {
+                        id: user.uid,
+                        name: userName,
+                        status: 'Waiting...',
+                        vote: null
+                    };
+                    await updateDoc(roomRef, {
+                        players: arrayUnion(player),
+                        lastActiveAt: Date.now()
+                    });
+                }
+            }
         }
     }
 
@@ -185,6 +210,12 @@ export class GameService {
             this.currentRoomData.set(null);
             this.roomSubscription?.unsubscribe();
         }
+    }
+
+    cleanupLocalGameState() {
+        this.roomSubscription?.unsubscribe();
+        this.currentRoomId.set(null);
+        this.currentRoomData.set(null);
     }
 
     async setPlayerStatus(roomId: string, userId: string, status: Player['status']) {
