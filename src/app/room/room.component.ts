@@ -35,11 +35,19 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
           <main class="main-content">
             <app-room-header [roomId]="roomId || ''" 
                             [isHost]="true"
+                            [roomName]="currentRoomName()"
+                            (roomNameChange)="onRoomNameChange($event)"
+                            (nameBlur)="saveRoomName()"
                             (endSession)="leaveRoom()" 
                             (copyLink)="copyInviteLink()">
             </app-room-header>
 
-            <app-task-description></app-task-description>
+            <app-task-description 
+                [isHost]="true"
+                [story]="currentStory()"
+                (storyChange)="onStoryChange($event)"
+                (storyBlur)="saveCurrentStory()">
+            </app-task-description>
 
             <section class="players-section">
               <h2>Players</h2>
@@ -86,12 +94,17 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
             <main class="voting-area">
               <app-room-header [roomId]="roomId || ''" 
                               [isHost]="false"
+                              [roomName]="currentRoomName()"
                               (endSession)="leaveRoom()" 
                               (copyLink)="copyInviteLink()">
               </app-room-header>
 
+              <app-task-description 
+                  [isHost]="false"
+                  [story]="currentStory()">
+              </app-task-description>
+
               <div class="task-header">
-                <h1>Estimating: Design the user authentication flow</h1>
                 @if (areCardsRevealed()) {
                   <p class="status-text">The votes are revealed!</p>
                 } @else {
@@ -110,7 +123,6 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
               </div>
             </main>
 
-            <!-- Right Sidebar -->
             <!-- Right Sidebar -->
             <app-room-sidebar 
                [isHost]="false"
@@ -193,8 +205,7 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
     }
 
     .task-header { margin-bottom: 3rem; }
-    .task-header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-    .status-text { color: #8892b0; } 
+    .status-text { color: #8892b0; font-size: 1.2rem; } 
 
     .voting-grid {
       display: grid;
@@ -342,6 +353,10 @@ export class RoomComponent implements OnInit, OnDestroy {
   currentUser = this.gameService.currentUser;
   areCardsRevealed = this.gameService.areCardsRevealed;
 
+  // Local signals for editable fields
+  currentRoomName = signal<string>('');
+  currentStory = signal<string>('');
+
   // Sorted Players (Current user first)
   sortedPlayers = computed(() => {
     const players = this.players();
@@ -385,8 +400,24 @@ export class RoomComponent implements OnInit, OnDestroy {
       const user = this.currentUser();
 
       // We only stop loading when we have both user and roomData (if room exists).
-      // We only stop loading when we have both user and roomData (if room exists).
       // Also prevent modal flash if we are deliberately leaving
+      if (roomData) {
+        // Sync Room Name and Story
+        // Only update signal if it's different to avoid loops if we add two-way binding or cause re-renders
+        // But since these are signals, setting same value is fine.
+        // IMPORTANT: If user is editing, we might not want to overwrite their local state immediately from server 
+        // if there's lag, but generally for this app, server wins or we rely on them not typing while someone else does (Host only).
+        // Since only Host edits, and there's 1 host, we can safely sync from server.
+        // Ideally we check if document is active element, but simple approach first.
+
+        if (roomData.roomName !== undefined) {
+          this.currentRoomName.set(roomData.roomName);
+        }
+        if (roomData.currentStory !== undefined) {
+          this.currentStory.set(roomData.currentStory);
+        }
+      }
+
       if (user && roomData && !this.isLeaving) {
         const me = roomData.players.find(p => p.id === user.uid);
 
@@ -483,6 +514,32 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.gameService.resetVotes();
     // selectedValue auto-updates via computed
   }
+
+  // --- Header & Story Editing Methods ---
+
+  onRoomNameChange(newName: string) {
+    this.currentRoomName.set(newName);
+  }
+
+  async saveRoomName() {
+    if (!this.roomId || !this.isHost()) return;
+    const name = this.currentRoomName().trim();
+    if (name) {
+      await this.gameService.updateRoomName(this.roomId, name);
+    }
+  }
+
+  onStoryChange(newStory: string) {
+    this.currentStory.set(newStory);
+  }
+
+  async saveCurrentStory() {
+    if (!this.roomId || !this.isHost()) return;
+    const story = this.currentStory();
+    // Allow empty story to clear it
+    await this.gameService.updateCurrentStory(this.roomId, story);
+  }
+
 
   @HostListener('window:beforeunload')
   async onBeforeUnload() {

@@ -3,7 +3,7 @@
     }
 
     h2 {
-        color: var(--text-primary);
+        color: var(--text-primary, #fff);
         font-size: 1.2rem;
         margin-bottom: 1rem;
         text-transform: uppercase;
@@ -11,15 +11,56 @@
     }
 
     .task-description-card {
-        color: var(--text-secondary);
+        color: var(--text-secondary, #a8b2d1);
         line-height: 1.6;
         max-width: 100%;
+        min-height: 120px;
+        /* Minimum height for consistency */
 
         /* Glassmorphism */
         background: rgba(17, 34, 64, 0.4);
-        border: 1px solid var(--border-glass);
+        border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
         padding: 1.5rem;
         border-radius: 12px;
         backdrop-filter: blur(10px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        /* alignment */
+        flex-direction: column;
+    }
+
+    .task-description-card.editable {
+        padding: 0;
+        /* Remove padding for textarea full fill or keep it? */
+        /* Actually keep padding, textarea inside */
+        padding: 1rem;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .task-description-card.editable:focus-within {
+        border-color: var(--neon-blue, #00f3ff);
+        background: rgba(17, 34, 64, 0.6);
+    }
+
+    .story-input {
+        width: 100%;
+        min-height: 100px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary, #a8b2d1);
+        font-family: inherit;
+        font-size: 1rem;
+        resize: vertical;
+        outline: none;
+        line-height: 1.6;
+    }
+
+    .story-input::placeholder {
+        font-style: italic;
+        color: rgba(168, 178, 209, 0.4);
+    }
+
+    .placeholder-text {
+        font-style: italic;
+        color: rgba(168, 178, 209, 0.4);
     }

@@ -17,6 +17,8 @@ export interface Room {
     hostId: string;
     areCardsRevealed: boolean;
     players: Player[];
+    roomName?: string;
+    currentStory?: string;
     createdAt?: number;
     lastActiveAt?: number;
 }
@@ -111,6 +113,8 @@ export class GameService {
                 hostId: user.uid,
                 areCardsRevealed: false,
                 players: [hostPlayer],
+                roomName: 'Project Phoenix - Sprint 1', // Default or could be passed param
+                currentStory: '',
                 createdAt: now,
                 lastActiveAt: now
             };
@@ -257,6 +261,22 @@ export class GameService {
             });
             localStorage.setItem(STORAGE_KEY, newName);
         }
+    }
+
+    async updateRoomName(roomId: string, name: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        await updateDoc(roomRef, {
+            roomName: name,
+            lastActiveAt: Date.now()
+        });
+    }
+
+    async updateCurrentStory(roomId: string, story: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        await updateDoc(roomRef, {
+            currentStory: story,
+            lastActiveAt: Date.now()
+        });
     }
 
     private async addPlayerToRoom(roomId: string, player: Player) {
