@@ -1,11 +1,13 @@
-import { Component, input } from '@angular/core';
+import { Component, input, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Player } from '../../game.service';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { Player, GameService } from '../../game.service';
 
 @Component({
   selector: 'app-participants-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="participants-container">
       @for (player of players(); track player.id) {
@@ -24,10 +26,24 @@ import { Player } from '../../game.service';
           </div>
 
           <div class="player-info">
-             <span class="name">
-                {{ player.name }} 
-                @if (player.id === currentUserId()) { <span class="you-tag">(You)</span> }
-             </span>
+             @if (editingUserId() === player.id) {
+               <div class="edit-name-group">
+                 <input type="text" 
+                        [(ngModel)]="editNameValue" 
+                        (keyup.enter)="saveName(player.id)"
+                        (blur)="saveName(player.id)"
+                        class="edit-name-input"
+                        autofocus>
+               </div>
+             } @else {
+               <span class="name" (click)="enableEdit(player)">
+                  {{ player.name }} 
+                  @if (player.id === currentUserId()) { 
+                    <span class="you-tag">(You)</span> 
+                    <button class="btn-edit" (click)="enableEdit(player); $event.stopPropagation()">✏️</button>
+                  }
+               </span>
+             }
           </div>
 
           <div class="vote-indicator">
@@ -63,8 +79,6 @@ import { Player } from '../../game.service';
                     </svg>
                  </span>
                }
-            } @else {
-               <!-- Removed folding indicator (3 dots) as requested -->
             }
           </div>
         </div>
@@ -74,11 +88,43 @@ import { Player } from '../../game.service';
   styleUrl: './participants-list.component.css'
 })
 export class ParticipantsListComponent {
+  private gameService = inject(GameService);
+  private route = inject(ActivatedRoute);
+
   players = input.required<Player[]>();
   areCardsRevealed = input(false);
   currentUserId = input<string | undefined>(undefined);
 
+  editingUserId = signal<string | null>(null);
+  editNameValue = '';
+
   getInitials(name: string): string {
     return name ? name.substring(0, 2).toUpperCase() : '??';
+  }
+
+  enableEdit(player: Player) {
+    if (player.id === this.currentUserId()) {
+      this.editNameValue = player.name;
+      this.editingUserId.set(player.id);
+    }
+  }
+
+  async saveName(playerId: string) {
+    if (this.editingUserId() !== playerId) return;
+
+    const newName = this.editNameValue.trim();
+    const roomId = this.route.snapshot.paramMap.get('id'); // Get ID from parent route? Wait, this is a child component.
+    // The route params might be available if using Router in a way that inherits, but safest is to get roomId from gameService or pass it in.
+    // Let's use GameService's currentRoomId.
+    const activeRoomId = this.gameService.currentRoomId();
+
+    if (newName && activeRoomId && newName !== '') {
+      try {
+        await this.gameService.updatePlayerName(activeRoomId, playerId, newName);
+      } catch (err) {
+        console.error('Failed to update name', err);
+      }
+    }
+    this.editingUserId.set(null);
   }
 }

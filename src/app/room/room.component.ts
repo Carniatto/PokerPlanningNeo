@@ -396,6 +396,12 @@ export class RoomComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Prefill name from localStorage
+    const savedName = localStorage.getItem('POKER_USER_NAME');
+    if (savedName) {
+      this.nameInput.set(savedName);
+    }
+
     // Attempt to rejoin if we have an ID but no subscription
     if (!this.gameService.currentRoomId()) {
       this.gameService.joinRoom(this.roomId);

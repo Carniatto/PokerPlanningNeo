@@ -49,6 +49,13 @@ export class HomeComponent {
   private router = inject(Router);
   private gameService = inject(GameService);
 
+  ngOnInit() {
+    const savedName = localStorage.getItem('POKER_USER_NAME');
+    if (savedName) {
+      this.userName = savedName;
+    }
+  }
+
   async createRoom() {
     if (!this.userName) return;
 

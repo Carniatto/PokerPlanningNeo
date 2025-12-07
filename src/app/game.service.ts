@@ -21,6 +21,8 @@ export interface Room {
     lastActiveAt?: number;
 }
 
+const STORAGE_KEY = 'POKER_USER_NAME';
+
 @Injectable({
     providedIn: 'root'
 })
@@ -77,6 +79,8 @@ export class GameService {
 
     async createRoom(userName: string) {
         console.log('createRoom called with:', userName);
+        localStorage.setItem(STORAGE_KEY, userName);
+
         try {
             let user = this.currentUser();
             if (!user) {
@@ -133,6 +137,11 @@ export class GameService {
 
         this.currentRoomId.set(roomId);
 
+        // Persist name if provided
+        if (userName) {
+            localStorage.setItem(STORAGE_KEY, userName);
+        }
+
         // Subscribe to room updates
         const roomRef = doc(this.firestore, 'rooms', roomId);
         this.roomSubscription?.unsubscribe();
@@ -166,10 +175,6 @@ export class GameService {
             const roomData = roomSnap.data() as Room;
             const updatedPlayers = roomData.players.filter(p => p.id !== userId);
 
-            // If no players left, maybe delete room? For now just remove player.
-            // If host leaves, logic might need to reassign host, but that's out of scope for this task unless specified.
-            // The requirement is just "make possible for the user to leave the room".
-
             await updateDoc(roomRef, {
                 players: updatedPlayers,
                 lastActiveAt: Date.now()
@@ -199,6 +204,27 @@ export class GameService {
                 players: updatedPlayers,
                 lastActiveAt: Date.now()
             });
+        }
+    }
+
+    async updatePlayerName(roomId: string, userId: string, newName: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedPlayers = roomData.players.map(p => {
+                if (p.id === userId) {
+                    return { ...p, name: newName };
+                }
+                return p;
+            });
+
+            await updateDoc(roomRef, {
+                players: updatedPlayers,
+                lastActiveAt: Date.now()
+            });
+            localStorage.setItem(STORAGE_KEY, newName);
         }
     }
 

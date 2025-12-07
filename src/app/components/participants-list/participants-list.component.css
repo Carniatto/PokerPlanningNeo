@@ -225,3 +225,41 @@
         opacity: 0;
     }
 }
+
+/* Name Editing Styles */
+.btn-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 6px;
+    margin-left: 8px;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.btn-edit:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.edit-name-group {
+    display: flex;
+    align-items: center;
+}
+
+.edit-name-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-glass, #334155);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.edit-name-input:focus {
+    border-color: var(--neon-blue, #22d3ee);
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.2);
+}
