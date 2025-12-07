@@ -7,6 +7,61 @@
         padding: 2rem;
         min-height: calc(100vh - 64px - 100px);
         background: radial-gradient(circle at 50% 50%, rgba(29, 78, 216, 0.15) 0%, transparent 50%);
+        position: relative;
+        /* For banner positioning */
+    }
+
+    /* Error Banner */
+    .error-banner {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(220, 38, 38, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        /* Pill shape */
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    .error-banner .material-icons {
+        font-size: 1.25rem;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        margin-left: 0.5rem;
+    }
+
+    .close-btn:hover {
+        opacity: 1;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translate(-50%, -100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
     }
 
     .hero-text {

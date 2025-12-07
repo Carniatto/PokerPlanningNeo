@@ -146,9 +146,59 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
           </div>
         </div>
       }
+      <!-- Session Ended Overlay -->
+      @if (sessionEnded()) {
+        <div class="modal-overlay session-ended-overlay">
+          <div class="modal-content">
+            <h2>Session Ended</h2>
+            <p>The host has ended the session.</p>
+            <div class="countdown-circle">
+                <span class="countdown-number">{{ redirectCountdown() }}</span>
+                <span class="countdown-label">seconds</span>
+            </div>
+            <p class="redirect-text">Redirecting to home...</p>
+            <button (click)="forceLeave()">Leave Now</button>
+          </div>
+        </div>
+      }
     }
   `,
   styles: [`
+    /* Session Ended Specifics */
+    .session-ended-overlay {
+        background-color: rgba(2, 12, 27, 0.95);
+        z-index: 10000;
+    }
+    
+    .countdown-circle {
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        border: 3px solid var(--neon-blue, #00f3ff);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+        animation: pulse 1s infinite alternate;
+    }
+    
+    .countdown-number {
+        font-size: 2.5rem; font-weight: bold;
+        color: white;
+    }
+    
+    .countdown-label {
+        font-size: 0.8rem; color: #a8b2d1;
+    }
+    
+    .redirect-text {
+        font-style: italic;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+        100% { box-shadow: 0 0 25px rgba(0, 243, 255, 0.6); }
+    }
+
     /* Shared & Host Styles */
     .dashboard-container {
       display: flex;
@@ -373,7 +423,7 @@ export class RoomComponent implements OnInit, OnDestroy {
   });
 
   // Player View State
-  votingValues = ['0', '1', '2', '3', '5', '8', '13', '20', '?', '☕'];
+  votingValues = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
   // Computed selected value from server state (Single Source of Truth)
   selectedValue = computed(() => {
@@ -416,6 +466,21 @@ export class RoomComponent implements OnInit, OnDestroy {
         if (roomData.currentStory !== undefined) {
           this.currentStory.set(roomData.currentStory);
         }
+
+        // Check for Session End
+        if (roomData.status === 'ended' && !this.sessionEnded()) {
+          // If I am host, I should have already left or triggered this. 
+          // But if I am a player, or a host in another tab, trigger the end-game flow.
+          // If I initiated the end (isLeaving=true), I ignore this update (likely component destroyed already).
+          if (!this.isLeaving && !this.isHost()) {
+            this.triggerSessionEndedSequence();
+          }
+          // If I am host and see 'ended', and haven't left yet (maybe another host ended it? unlikely in this logic but possible),
+          // perform leave immediately.
+          if (!this.isLeaving && this.isHost()) {
+            this.leaveRoom();
+          }
+        }
       }
 
       if (user && roomData && !this.isLeaving) {
@@ -426,7 +491,7 @@ export class RoomComponent implements OnInit, OnDestroy {
           this.isAutoJoining.set(false);
           this.showNamePrompt.set(false);
           this.isLoading.set(false);
-        } else if (!this.isAutoJoining()) {
+        } else if (!this.isAutoJoining() && !this.sessionEnded()) { // Only show name prompt if session NOT ended
           // User NOT in room and NOT auto-joining -> Show Prompt.
           this.showNamePrompt.set(true);
           this.isLoading.set(false);
@@ -473,17 +538,86 @@ export class RoomComponent implements OnInit, OnDestroy {
     }
   }
 
-
   // Flag to handle manual leave vs page unload
   isLeaving = false;
 
+  // Session End Logic
+  sessionEnded = signal(false);
+  redirectCountdown = signal(10);
+  private countdownInterval: any;
+
   async leaveRoom() {
+    // Guard against multiple calls (e.g. double clicks or effect triggers)
+    if (this.isLeaving) return;
+
+    // Safety timeout to prevent getting stuck in loading state
+    const loadingTimeout = setTimeout(() => {
+      if (this.isLoading()) {
+        console.warn('Leave room timed out, forcing navigation.');
+        this.router.navigate(['/']);
+      }
+    }, 5000); // 5 seconds max
+
+    // If Host, trigger End Session for everyone
+    if (this.isHost()) {
+      const roomState = this.gameService.currentRoomData();
+
+      // If session is already ended, skip confirmation
+      if (roomState?.status !== 'ended') {
+        if (confirm('Are you sure you want to end the session? This will disconnect all players.')) {
+          this.isLeaving = true;
+          this.isLoading.set(true);
+
+          try {
+            await this.gameService.endSession(this.roomId!);
+            // Host has already cleared players. 
+            // Just clean up local state and leave.
+            this.gameService.cleanupLocalGameState();
+            clearTimeout(loadingTimeout);
+            this.router.navigate(['/']);
+            return;
+          } catch (e) {
+            console.error('Failed to end session', e);
+            // Continue to standard leave logic if endSession failed totally
+          }
+        } else {
+          clearTimeout(loadingTimeout);
+          return; // Cancelled
+        }
+      }
+    }
+
     this.isLeaving = true;
-    this.isLoading.set(true); // Hide UI immediately to prevent modal flash
+    this.isLoading.set(true);
 
     if (this.roomId && this.currentUser()) {
-      await this.gameService.leaveRoom(this.roomId, this.currentUser()!.uid);
+      try {
+        await this.gameService.leaveRoom(this.roomId, this.currentUser()!.uid);
+      } catch (e) {
+        console.error('Error leaving room', e);
+      }
     }
+    clearTimeout(loadingTimeout);
+    this.router.navigate(['/']);
+  }
+
+  triggerSessionEndedSequence() {
+    this.sessionEnded.set(true);
+    this.showNamePrompt.set(false); // Ensure modal is gone
+
+    this.countdownInterval = setInterval(() => {
+      const current = this.redirectCountdown();
+      if (current > 0) {
+        this.redirectCountdown.set(current - 1);
+      } else {
+        this.forceLeave();
+      }
+    }, 1000);
+  }
+
+  forceLeave() {
+    clearInterval(this.countdownInterval);
+    this.isLeaving = true;
     this.router.navigate(['/']);
   }
 
@@ -549,6 +683,7 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    clearInterval(this.countdownInterval);
     // Check isLeaving to avoid overwriting clean exit with "Disconnected"
     if (!this.isLeaving && this.roomId && this.currentUser()) {
       this.gameService.setPlayerStatus(this.roomId, this.currentUser()!.uid, 'Disconnected');

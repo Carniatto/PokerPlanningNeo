@@ -21,6 +21,8 @@ export interface Room {
     currentStory?: string;
     createdAt?: number;
     lastActiveAt?: number;
+    currentPlayerId?: string;
+    status?: 'active' | 'ended';
 }
 
 const STORAGE_KEY = 'POKER_USER_NAME';
@@ -113,8 +115,9 @@ export class GameService {
                 hostId: user.uid,
                 areCardsRevealed: false,
                 players: [hostPlayer],
-                roomName: 'Project Phoenix - Sprint 1', // Default or could be passed param
+                roomName: 'New Planning Session',
                 currentStory: '',
+                status: 'active',
                 createdAt: now,
                 lastActiveAt: now
             };
@@ -275,6 +278,15 @@ export class GameService {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         await updateDoc(roomRef, {
             currentStory: story,
+            lastActiveAt: Date.now()
+        });
+    }
+
+    async endSession(roomId: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        await updateDoc(roomRef, {
+            status: 'ended',
+            players: [], // Remove all players
             lastActiveAt: Date.now()
         });
     }

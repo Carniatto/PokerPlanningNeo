@@ -14,13 +14,13 @@
         color: var(--text-secondary, #a8b2d1);
         line-height: 1.6;
         max-width: 100%;
-        min-height: 120px;
+        min-height: 0; 
         /* Minimum height for consistency */
 
         /* Glassmorphism */
         background: rgba(17, 34, 64, 0.4);
         border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
-        padding: 1.5rem;
+        padding: 1rem;
         border-radius: 12px;
         backdrop-filter: blur(10px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -30,10 +30,7 @@
     }
 
     .task-description-card.editable {
-        padding: 0;
-        /* Remove padding for textarea full fill or keep it? */
-        /* Actually keep padding, textarea inside */
-        padding: 1rem;
+        padding: 0.75rem;
         transition: border-color 0.2s, background 0.2s;
     }
 
@@ -44,15 +41,17 @@
 
     .story-input {
         width: 100%;
-        min-height: 100px;
+        min-height: 0;
         background: transparent;
         border: none;
         color: var(--text-secondary, #a8b2d1);
         font-family: inherit;
         font-size: 1rem;
-        resize: vertical;
+        resize: none; 
         outline: none;
-        line-height: 1.6;
+        line-height: 1.5;
+        height: 3em; /* 2 lines * 1.5 line-height */
+        overflow-y: auto;
     }
 
     .story-input::placeholder {

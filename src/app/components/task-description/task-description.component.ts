@@ -16,6 +16,7 @@ import { FormsModule } from '@angular/forms';
                 [ngModel]="story()"
                 (ngModelChange)="onStoryChange($event)"
                 (blur)="onStoryBlur()"
+                rows="2"
                 placeholder="add here the current task to be estimated">
             </textarea>
         } @else {
