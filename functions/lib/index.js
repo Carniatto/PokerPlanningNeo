@@ -52,23 +52,46 @@ exports.cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").onUpdat
     if (!newData)
         return null; // Document deleted
     const players = newData.players || [];
-    if (players.length === 0) {
-        console.log(`Room ${context.params.roomId} is empty. Waiting 20s grace period...`);
-        // Grace period for refresh/reconnection
+    // Check for "Disconnected" players
+    const disconnectedPlayers = players.filter((p) => p.status === 'Disconnected');
+    if (disconnectedPlayers.length > 0) {
+        console.log(`Found ${disconnectedPlayers.length} disconnected players in room ${context.params.roomId}. Waiting 20s...`);
+        // Wait 20s
         await new Promise(resolve => setTimeout(resolve, 20000));
-        // Re-fetch the latest state
+        // Re-fetch
         const currentDoc = await change.after.ref.get();
         if (!currentDoc.exists)
-            return null; // Already deleted
+            return null;
         const currentData = currentDoc.data();
         const currentPlayers = (currentData === null || currentData === void 0 ? void 0 : currentData.players) || [];
-        if (currentPlayers.length === 0) {
-            console.log(`Room ${context.params.roomId} still empty after grace period. Deleting...`);
-            await change.after.ref.delete();
+        // Filter out players who are STILL disconnected
+        // (If they refreshed, their status would be 'Waiting...' or joined again)
+        // Note: The logic assumes the client sets them back to 'Waiting...' on join. 
+        // If they stay 'Disconnected', they get removed.
+        const playersToRemove = disconnectedPlayers.filter((dp) => {
+            const currentPlayerState = currentPlayers.find((cp) => cp.id === dp.id);
+            return currentPlayerState && currentPlayerState.status === 'Disconnected';
+        });
+        if (playersToRemove.length > 0) {
+            console.log(`Removing ${playersToRemove.length} players who are stil Disconnected.`);
+            const updatedPlayers = currentPlayers.filter((cp) => !playersToRemove.some((pr) => pr.id === cp.id));
+            // If checking players removals results in empty room, it will trigger this function again recursively (or we can handle it here)
+            // But let's just update for now. 
+            // If updatedPlayers is empty, the NEXT trigger will see empty array and delete the room.
+            if (updatedPlayers.length === 0) {
+                console.log("Room became empty after removing disconnected users. Deleting room.");
+                await change.after.ref.delete();
+            }
+            else {
+                await change.after.ref.update({ players: updatedPlayers });
+            }
+            return null;
         }
-        else {
-            console.log(`Room ${context.params.roomId} recovered (player joined). Aborting delete.`);
-        }
+    }
+    // Existing "Empty Room" logic (fallback if room is truly empty [])
+    if (players.length === 0) {
+        console.log(`Room ${context.params.roomId} is empty. Deleting...`);
+        await change.after.ref.delete();
     }
     return null;
 });

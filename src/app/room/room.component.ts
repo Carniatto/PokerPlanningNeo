@@ -117,11 +117,7 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                [players]="sortedPlayers()" 
                [areCardsRevealed]="areCardsRevealed()"
                [currentUserId]="currentUser()?.uid">
-               <div class="footer-content">
-                  <div class="sidebar-footer" style="margin-top: auto;">
-                     <button class="btn-leave-room" (click)="leaveRoom()">Leave Room</button>
-                  </div>
-               </div>
+
             </app-room-sidebar>
           </div>
         </div>
@@ -443,11 +439,25 @@ export class RoomComponent implements OnInit, OnDestroy {
 
   @HostListener('window:beforeunload')
   async onBeforeUnload() {
-    await this.leaveRoom();
+    if (this.roomId && this.currentUser()) {
+      await this.gameService.setPlayerStatus(this.roomId, this.currentUser()!.uid, 'Disconnected');
+    }
   }
 
   ngOnDestroy() {
-    this.leaveRoom();
+    // Ideally we distinguish between "Navigate Away" (which implies staying connected?) 
+    // vs "Close Tab". But for now, as per plan, we mark as Disconnected during navigation too.
+    // If the user navigates back, they will re-subscribe. 
+    // Actually, "Navigate Away" IS leaving the room component. 
+    // If they go to "Home", they effectively left the room.
+    // The requirement said: "When a user closes tab/refreshes... Mark them as Disconnected".
+    // If I click "Home", I am leaving. 
+    // If I want to leave "for real", I click "Leave Room".
+    // "Leave Room" button calls leaveRoom() -> immediate delete.
+    // This hook is for implicit leaving.
+    if (this.roomId && this.currentUser()) {
+      this.gameService.setPlayerStatus(this.roomId, this.currentUser()!.uid, 'Disconnected');
+    }
   }
 
   copyInviteLink() {

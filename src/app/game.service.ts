@@ -8,7 +8,7 @@ import { switchMap, tap, map } from 'rxjs/operators';
 export interface Player {
     id: string;
     name: string;
-    status: 'Voted' | 'Waiting...' | 'Not Participating';
+    status: 'Voted' | 'Waiting...' | 'Not Participating' | 'Disconnected';
     vote?: string | null;
     avatarUrl?: string;
 }
@@ -179,6 +179,26 @@ export class GameService {
             this.currentRoomId.set(null);
             this.currentRoomData.set(null);
             this.roomSubscription?.unsubscribe();
+        }
+    }
+
+    async setPlayerStatus(roomId: string, userId: string, status: Player['status']) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedPlayers = roomData.players.map(p => {
+                if (p.id === userId) {
+                    return { ...p, status };
+                }
+                return p;
+            });
+
+            await updateDoc(roomRef, {
+                players: updatedPlayers,
+                lastActiveAt: Date.now()
+            });
         }
     }
 
