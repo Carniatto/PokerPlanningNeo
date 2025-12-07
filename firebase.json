@@ -11,6 +11,20 @@
         ],
         "source": "functions"
     },
+    "hosting": {
+        "public": "dist/poker-planning-neo/browser",
+        "ignore": [
+            "firebase.json",
+            "**/.*",
+            "**/node_modules/**"
+        ],
+        "rewrites": [
+            {
+                "source": "**",
+                "destination": "/index.html"
+            }
+        ]
+    },
     "emulators": {
         "auth": {
             "port": 9099,
