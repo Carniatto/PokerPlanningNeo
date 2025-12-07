@@ -33,8 +33,7 @@ import { CommonModule } from '@angular/common';
                 </linearGradient>
               </defs>
               <g transform="translate(50, 70) scale(0.85) translate(-2.5, 0)">
-                 <path d="M -25,-10 L -25,20 Q -25,40 0,40 Q 25,40 25,20 L 25,-10 Z" class="cup-body" />
-                 <path d="M 25,0 Q 40,0 40,15 Q 40,30 25,30" class="cup-handle" />
+                 <path d="M -25,-10 L -25,20 Q -25,40 0,40 Q 25,40 25,20 L 25,-10 Z M 25,0 Q 40,0 40,15 Q 40,30 25,30" class="cup-outline" />
                  <g class="steam">
                    <path d="M -15,-20 Q -10,-30 -15,-40" />
                    <path d="M 0,-20 Q 5,-30 0,-40" />
@@ -59,22 +58,16 @@ import { CommonModule } from '@angular/common';
     svg { width: 100%; height: 100%; }
 
     /* Coffee Animation & Styles */
-    .cup-body, .cup-handle, .steam path {
+
+    .cup-outline, .steam path {
         fill: none;
         stroke: var(--coffee-stroke, var(--coffee-gradient));
         stroke-width: 8px; /* Adjusted relative to SVG viewbox */
     }
-    .cup-body, .cup-handle {
+    .cup-outline {
         filter: drop-shadow(0 0 2px rgba(217, 70, 239, 0.5));
-    }
-    .cup-handle { stroke-linecap: round; }
-    .steam path {
-        stroke-width: 6px;
         stroke-linecap: round;
-        filter: drop-shadow(0 0 2px rgba(217, 70, 239, 0.5));
     }
-
-    .cup-handle { stroke-linecap: round; }
     .steam path {
         stroke-width: 6px;
         stroke-linecap: round;
