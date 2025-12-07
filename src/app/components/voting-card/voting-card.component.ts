@@ -13,7 +13,8 @@ import { IconComponent } from '../icon/icon.component';
          (click)="onSelect()">
         
         @if (value() === '☕') {
-          <div class="icon-wrapper" [style.--coffee-stroke]="selected() ? null : 'rgba(255, 255, 255, 0.3)'">
+          <div class="icon-wrapper" 
+               [style.--coffee-stroke]="selected() ? null : 'rgba(255, 255, 255, 0.3)'">
              <app-icon name="coffee" size="full"></app-icon>
           </div>
         } @else {

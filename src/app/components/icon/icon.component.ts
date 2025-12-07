@@ -2,10 +2,10 @@ import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-icon',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-icon',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="icon-container" [class]="size()" [style.--coffee-gradient]="'url(#neonGradient-' + uniqueId + ')'">
       @switch (name()) {
         @case ('edit') {
@@ -46,7 +46,7 @@ import { CommonModule } from '@angular/common';
       }
     </div>
   `,
-    styles: [`
+  styles: [`
     :host { display: inline-block; vertical-align: middle; }
     .icon-container { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
     
@@ -72,24 +72,20 @@ import { CommonModule } from '@angular/common';
         stroke-width: 6px;
         stroke-linecap: round;
         filter: drop-shadow(0 0 2px rgba(217, 70, 239, 0.5));
-        animation: steam-rise 2s infinite ease-in-out;
     }
 
-    .steam path:nth-child(1) { animation-delay: 0s; }
-    .steam path:nth-child(2) { animation-delay: 0.5s; }
-    .steam path:nth-child(3) { animation-delay: 1s; }
-
-    @keyframes steam-rise {
-        0% { transform: translateY(0); opacity: 0.5; }
-        50% { transform: translateY(-5px); opacity: 1; }
-        100% { transform: translateY(-10px); opacity: 0; }
+    .cup-handle { stroke-linecap: round; }
+    .steam path {
+        stroke-width: 6px;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 2px rgba(217, 70, 239, 0.5));
     }
   `]
 })
 export class IconComponent {
-    name = input.required<'edit' | 'check' | 'coffee' | 'vote-hidden'>();
-    size = input<'small' | 'medium' | 'large' | 'full'>('full');
+  name = input.required<'edit' | 'check' | 'coffee' | 'vote-hidden'>();
+  size = input<'small' | 'medium' | 'large' | 'full'>('full');
 
-    // Unique ID for gradients to prevent ID collisions
-    uniqueId = Math.random().toString(36).substr(2, 9);
+  // Unique ID for gradients to prevent ID collisions
+  uniqueId = Math.random().toString(36).substr(2, 9);
 }
