@@ -15,3 +15,13 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_POKERPLANNINGNEO }}'
           channelId: live
           projectId: pokerplanningneo
+      - name: Install Functions Dependencies
+        run: cd functions && npm ci
+      - name: Build Functions
+        run: cd functions && npm run build
+      - name: Deploy Cloud Functions
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_POKERPLANNINGNEO }}
