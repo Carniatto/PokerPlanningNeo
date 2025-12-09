@@ -47,6 +47,12 @@ import { IntroComponent } from './intro/intro.component';
       z-index: 10;
     }
 
+    @media (max-width: 768px) {
+      .app-header {
+        padding: 0 1rem;
+      }
+    }
+
     .logo {
       display: flex;
       align-items: center;
@@ -86,6 +92,12 @@ import { IntroComponent } from './intro/intro.component';
       color: var(--text-main);
     }
 
+    @media (max-width: 768px) {
+       .header-nav {
+         display: none;
+       }
+    }
+
     .main-content {
       flex: 1;
       display: flex;
@@ -97,6 +109,12 @@ import { IntroComponent } from './intro/intro.component';
       padding: 2rem;
       color: var(--text-muted);
       font-size: 0.8rem;
+    }
+
+    @media (max-width: 768px) {
+       .app-footer {
+          display: none;
+       }
     }
   `]
 })

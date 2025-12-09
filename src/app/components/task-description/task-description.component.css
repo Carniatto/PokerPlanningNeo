@@ -14,7 +14,7 @@
         color: var(--text-secondary, #a8b2d1);
         line-height: 1.6;
         max-width: 100%;
-        min-height: 0; 
+        min-height: 0;
         /* Minimum height for consistency */
 
         /* Glassmorphism */
@@ -47,10 +47,11 @@
         color: var(--text-secondary, #a8b2d1);
         font-family: inherit;
         font-size: 1rem;
-        resize: none; 
+        resize: none;
         outline: none;
         line-height: 1.5;
-        height: 3em; /* 2 lines * 1.5 line-height */
+        height: 3em;
+        /* 2 lines * 1.5 line-height */
         overflow-y: auto;
     }
 
@@ -62,4 +63,15 @@
     .placeholder-text {
         font-style: italic;
         color: rgba(168, 178, 209, 0.4);
+    }
+
+    @media (max-width: 768px) {
+        .task-section {
+            margin-bottom: 0.5rem;
+            /* Reduced to fit deck */
+        }
+
+        .task-description-card {
+            padding: 0.75rem;
+        }
     }

@@ -167,6 +167,33 @@ import { Player } from '../../game.service';
     @keyframes particle-explode-3 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(-80px, 100px); opacity: 0; } }
     @keyframes particle-explode-4 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(80px, 80px); opacity: 0; } }
     @keyframes particle-explode-5 { 0% { transform: translate(0,0); opacity: 1; } 100% { transform: translate(0px, -120px); opacity: 0; } }
+
+    @media (max-width: 768px) {
+        .round-result-card {
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 12px;
+        }
+
+        .result-value {
+            font-size: 3rem;
+            margin: 0.5rem 0 1rem;
+        }
+
+        .result-stats {
+            margin-bottom: 1rem;
+            padding-top: 1rem;
+        }
+        
+        .stat .value {
+            font-size: 1rem;
+        }
+        
+        h3 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+    }
   `]
 })
 export class RoundResultComponent {

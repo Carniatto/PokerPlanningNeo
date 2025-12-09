@@ -38,3 +38,33 @@
     .btn-control:last-child {
         margin-bottom: 0;
     }
+
+    @media (max-width: 768px) {
+        .host-controls-card {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            /* Reduced to fit deck */
+            display: flex;
+            flex-direction: row;
+            /* Horizontal layout */
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        h3 {
+            width: 100%;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        .btn-control {
+            flex: 1;
+            /* Equal width buttons */
+            margin-bottom: 0;
+            font-size: 0.8rem;
+            /* Slightly smaller text */
+            padding: 0 0.5rem;
+        }
+    }

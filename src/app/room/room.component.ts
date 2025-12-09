@@ -58,20 +58,22 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
               </div>
             </section>
             
-            <section class="deck-section">
-                <h2>Your Deck</h2>
-                <div class="cards-row">
-                    @for (value of votingValues; track value) {
-                      <app-voting-card 
-                        class="host-voting-card"
-                        [value]="value" 
-                        [selected]="selectedValue() === value"
-                        (select)="selectVote($event)"
-                        size="small">
-                      </app-voting-card>
-                    }
-                </div>
-            </section>
+            @if (!areCardsRevealed()) {
+              <section class="deck-section">
+                  <h2>Your Deck</h2>
+                  <div class="cards-row">
+                      @for (value of votingValues; track value) {
+                        <app-voting-card 
+                          class="host-voting-card"
+                          [value]="value" 
+                          [selected]="selectedValue() === value"
+                          (select)="selectVote($event)"
+                          size="small">
+                        </app-voting-card>
+                      }
+                  </div>
+              </section>
+            }
           </main>
 
           <!-- Right Column: Host Sidebar (Direct child of flex container) -->
@@ -112,15 +114,17 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                 }
               </div>
 
-              <div class="voting-grid">
-                @for (value of votingValues; track value) {
-                  <app-voting-card 
-                                  [value]="value" 
-                                  [selected]="selectedValue() === value"
-                                  (select)="selectVote($event)">
-                  </app-voting-card>
-                }
-              </div>
+              @if (!areCardsRevealed()) {
+                <div class="voting-grid">
+                  @for (value of votingValues; track value) {
+                    <app-voting-card 
+                                    [value]="value" 
+                                    [selected]="selectedValue() === value"
+                                    (select)="selectVote($event)">
+                    </app-voting-card>
+                  }
+                </div>
+              }
             </main>
 
             <!-- Right Sidebar -->
@@ -388,6 +392,139 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* MOBILE RESPONSIVENESS */
+    @media (max-width: 768px) {
+      .dashboard-container {
+        flex-direction: column;
+        height: calc(100dvh - 64px); /* Subtract Global Header Height */
+        overflow-y: auto; /* Host view scroll container */
+        overflow-x: hidden;
+        padding-bottom: 0px; 
+        box-sizing: border-box; 
+      }
+
+      .player-layout {
+        height: calc(100dvh - 64px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 0; /* Removing global padding to match host strategy */
+        box-sizing: border-box;
+      }
+      
+      .voting-area {
+        display: contents;
+      }
+      
+      .main-content {
+          display: contents;
+      }
+      
+      .player-content-wrapper {
+         flex-direction: column;
+         display: contents;
+      }
+
+      /* Reordering Logic */
+      app-room-header { order: 10; margin-bottom: 0 !important; }
+      app-task-description { order: 15; } /* Moved above controls */
+      app-host-controls { order: 20; }
+      
+      /* Host Players Grid - Hidden on Mobile */
+      .players-section { 
+          display: none !important;
+          order: 40;
+      } 
+      
+      .deck-section { order: 50; } 
+      
+      /* Player View Specifics */
+      .task-header { order: 35; } 
+      .voting-grid { 
+          order: 40; 
+          /* flex: 1; Removed to prevent nested scrolling */
+          /* overflow-y: auto; Removed - let parent scroll */
+          /* min-height: 0; Removed */
+      }
+
+      /* Adjustments for Mobile - Compact Density */
+      
+      /* PLAYER VIEW: Inside .voting-area */
+      .player-layout app-room-header { 
+        padding: 1rem 1rem 0 1rem; /* Match Host Header */
+        display: block; 
+        flex: none;
+        margin-bottom: 0.25rem;
+      }
+      
+      .player-layout app-task-description {
+         padding: 0 1rem;
+         display: block; 
+         flex: none;
+      }
+
+      .task-header {
+        padding: 0 1rem;
+        margin-bottom: 0.25rem; /* Reduced from 0.5rem */
+        flex: none;
+      }
+      
+      /* HOST VIEW: Direct children of container (needs own padding) */
+      .host-theme app-room-header {
+          padding: 1rem 1rem 0 1rem;
+          display: block;
+          flex: none;
+          margin-bottom: 0.25rem;
+      }
+      
+      .host-theme app-task-description {
+          padding: 0 1rem;
+          display: block;
+          flex: none;
+      }
+
+      /* Compact Grids - 3 Rows of 4 (4-4-2) */
+      .voting-grid {
+        padding: 0 1rem 1rem 1rem; /* Consistent side padding */
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 0.5rem;
+        align-content: start;
+        justify-items: start; /* Match cards-row */
+      }
+
+      .voting-grid > app-voting-card {
+          width: 100%;
+          min-width: 0;
+      }
+      
+      .deck-section {
+          padding: 0 1rem; /* Removed top padding */
+          margin-top: 0 !important; /* Removed top margin */
+          flex: none;
+      }
+      
+      .deck-section h2 {
+          display: none; /* Hide 'Your Deck' on mobile */
+      }
+      
+      .cards-row {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.5rem;
+          justify-items: start; /* Align items to start of cell if needed, but stretch is default */
+      }
+      
+      .host-voting-card {
+          width: 100%; /* Fill the grid cell */
+          max-width: none; /* remove limits */
+          min-width: 0;
+      }
+      
+      .players-grid {
+          justify-content: center;
+          gap: 0.5rem;
+      }
+    }
   `]
 })
 export class RoomComponent implements OnInit, OnDestroy {
@@ -644,7 +781,6 @@ export class RoomComponent implements OnInit, OnDestroy {
   }
 
   startNewRound() {
-    this.gameService.revealCards(false);
     this.gameService.resetVotes();
     // selectedValue auto-updates via computed
   }

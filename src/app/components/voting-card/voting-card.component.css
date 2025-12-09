@@ -41,16 +41,18 @@
     transition: opacity 0.3s ease;
 }
 
-.vote-card:hover {
-    transform: translateY(-5px) scale(1.02);
-    border-color: #d946ef;
-    /* Fuchsia-500 */
-    box-shadow: 0 0 15px rgba(217, 70, 239, 0.4);
-    color: rgba(255, 255, 255, 0.8);
-}
+@media (hover: hover) {
+    .vote-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        border-color: #d946ef;
+        /* Fuchsia-500 */
+        box-shadow: 0 0 15px rgba(217, 70, 239, 0.4);
+        color: rgba(255, 255, 255, 0.8);
+    }
 
-.vote-card:hover::before {
-    opacity: 1;
+    .vote-card:hover::before {
+        opacity: 1;
+    }
 }
 
 .vote-card.selected {
@@ -99,6 +101,16 @@
     width: 60%;
     height: 60%;
     display: flex;
-    align-items: center;
     justify-content: center;
+}
+
+/* Mobile adjustments for consistency */
+@media (max-width: 768px) {
+
+    .vote-card,
+    .vote-card.small {
+        border-width: 1.5px !important;
+        border-radius: 12px !important;
+        /* Force consistency */
+    }
 }

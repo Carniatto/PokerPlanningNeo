@@ -16,6 +16,8 @@
     background-clip: text;
     color: transparent;
     display: inline-block;
+    padding: 0.2rem 0.5rem;
+    /* Match input padding */
 }
 
 /* Editable Title Styles */
@@ -117,4 +119,81 @@
     background: rgba(255, 50, 50, 0.2);
     box-shadow: 0 0 10px rgba(255, 85, 85, 0.2);
     transform: translateY(-1px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .content-header {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.25rem;
+        /* Tighter gap */
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Unwrap title section to allow reordering children */
+    .title-section {
+        display: contents;
+    }
+
+    /* Row 1: Title (Full Width) */
+    .title-section h1,
+    .editable-title-wrapper {
+        width: 100%;
+        order: 1;
+        margin-bottom: 0;
+        /* No extra margin */
+    }
+
+    .editable-title,
+    .title-section h1 {
+        font-size: 1.4rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .editable-title-wrapper {
+        margin-bottom: 0;
+    }
+
+    /* Row 2: Room Info (Left) + Button (Right) */
+
+    .room-info {
+        order: 2;
+        width: auto;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        padding-left: 0.5rem;
+        /* Align with title text which has 0.5rem padding */
+    }
+
+    /* Hide text, show only icon for link */
+    .invite-link .link-text {
+        display: none;
+    }
+
+    .invite-link .link-icon {
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .btn-end-session {
+        order: 3;
+        width: auto;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8rem;
+        margin-left: auto;
+        /* Push to right if needed, but flex space-between handles it */
+    }
 }

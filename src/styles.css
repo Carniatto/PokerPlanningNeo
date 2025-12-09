@@ -114,11 +114,13 @@ input::placeholder {
   overflow: hidden;
 }
 
-.btn-neo:hover {
-  background: var(--neon-blue);
-  color: white;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .btn-neo:hover {
+    background: var(--neon-blue);
+    color: white;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    transform: translateY(-2px);
+  }
 }
 
 .btn-neo:active {
@@ -141,13 +143,26 @@ input::placeholder {
   overflow: hidden;
 }
 
-.btn-neo-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+@media (hover: hover) {
+  .btn-neo-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+  }
 }
 
 .btn-neo-primary:active {
   transform: translateY(0);
+}
+
+.btn-neo:focus,
+.btn-neo-primary:focus {
+  outline: none;
+}
+
+.btn-neo:focus-visible,
+.btn-neo-primary:focus-visible {
+  outline: 2px solid var(--neon-blue);
+  outline-offset: 2px;
 }
 
 .btn-neo-primary:disabled,
@@ -174,6 +189,12 @@ input::placeholder {
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+
+/* Hide Firebase Emulator Banner */
+.firebase-emulator-warning,
+#firebase-emulator-warning {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
