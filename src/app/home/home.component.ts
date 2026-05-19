@@ -1,13 +1,13 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { form, Field } from '@angular/forms/signals';
+import { form, Field, FormField } from '@angular/forms/signals';
 import { Router, ActivatedRoute } from '@angular/router';
 import { GameService } from '../game.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, Field],
+  imports: [FormsModule, ReactiveFormsModule, FormField],
   template: `
     <div class="home-container">
       
@@ -29,7 +29,7 @@ import { GameService } from '../game.service';
       <div class="card glass-panel">
         <div class="form-group">
           <label>Your Name</label>
-          <input type="text" [field]="homeForm.name" placeholder="Enter Your Name" autocomplete="off">
+          <input type="text" [formField]="homeForm.name" placeholder="Enter Your Name" autocomplete="off">
         </div>
 
         <button class="btn-neo-primary" (click)="createRoom()" [disabled]="formModel().name === ''">
@@ -42,7 +42,7 @@ import { GameService } from '../game.service';
 
         <div class="form-group">
           <label>Room Code</label>
-          <input type="text" [field]="homeForm.roomCode" placeholder="Enter Room Code" autocomplete="off">
+          <input type="text" [formField]="homeForm.roomCode" placeholder="Enter Room Code" autocomplete="off">
         </div>
 
         <button class="btn-neo" (click)="joinRoom()" [disabled]="formModel().name === '' || formModel().roomCode === ''">
