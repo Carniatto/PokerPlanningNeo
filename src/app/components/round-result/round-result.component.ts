@@ -1,12 +1,11 @@
 import { Component, input, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Player } from '../../game.service';
 
 @Component({
-  selector: 'app-round-result',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-round-result',
+    imports: [],
+    template: `
     <div class="round-result-card glass-panel-inset">
       @if (consensus()) {
           <div class="particles-container">
@@ -43,7 +42,7 @@ import { Player } from '../../game.service';
       }
     </div>
   `,
-  styles: [`
+    styles: [`
     .round-result-card {
       background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
                   linear-gradient(135deg, #22d3ee 0%, #e879f9 100%) border-box;

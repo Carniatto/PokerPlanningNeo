@@ -1,20 +1,18 @@
 import { Component, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Player } from '../../game.service';
 import { HostControlsComponent } from '../host-controls/host-controls.component';
 import { RoundResultComponent } from '../round-result/round-result.component';
 import { ParticipantsListComponent } from '../participants-list/participants-list.component';
 
 @Component({
-  selector: 'app-room-sidebar',
-  standalone: true,
-  imports: [
-    CommonModule,
+    selector: 'app-room-sidebar',
+    imports: [
     HostControlsComponent,
     RoundResultComponent,
     ParticipantsListComponent
-  ],
-  template: `
+],
+    template: `
     <aside class="room-sidebar">
       <!-- Host Controls (Top) -->
       @if (isHost()) {
@@ -52,10 +50,10 @@ import { ParticipantsListComponent } from '../participants-list/participants-lis
       </div>
     </aside>
   `,
-  styleUrl: './room-sidebar.component.css',
-  host: {
-    '[class.host-mode]': 'isHost()'
-  }
+    styleUrl: './room-sidebar.component.css',
+    host: {
+        '[class.host-mode]': 'isHost()'
+    }
 })
 export class RoomSidebarComponent {
   players = input.required<Player[]>();

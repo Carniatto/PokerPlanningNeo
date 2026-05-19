@@ -1,12 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { IconComponent } from '../icon/icon.component';
 
 @Component({
-  selector: 'app-voting-card',
-  standalone: true,
-  imports: [CommonModule, IconComponent],
-  template: `
+    selector: 'app-voting-card',
+    imports: [IconComponent],
+    template: `
     <div class="vote-card" 
          [class.selected]="selected()"
          [class.small]="size() === 'small'"
@@ -32,7 +31,7 @@ import { IconComponent } from '../icon/icon.component';
         }
     </div>
   `,
-  styleUrl: './voting-card.component.css'
+    styleUrl: './voting-card.component.css'
 })
 export class VotingCardComponent {
   value = input.required<string>();

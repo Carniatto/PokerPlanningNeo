@@ -1,11 +1,10 @@
 import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
-  selector: 'app-icon',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-icon',
+    imports: [],
+    template: `
     <div class="icon-container" [class]="size()" [style.--coffee-gradient]="'url(#neonGradient-' + uniqueId + ')'">
       @switch (name()) {
         @case ('edit') {
@@ -45,7 +44,7 @@ import { CommonModule } from '@angular/common';
       }
     </div>
   `,
-  styles: [`
+    styles: [`
     :host { display: inline-block; vertical-align: middle; }
     .icon-container { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
     

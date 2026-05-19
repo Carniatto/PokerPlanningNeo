@@ -3,10 +3,9 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { IntroComponent } from './intro/intro.component';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [RouterOutlet, IntroComponent, RouterLink, RouterLinkActive],
-  template: `
+    selector: 'app-root',
+    imports: [RouterOutlet, IntroComponent, RouterLink, RouterLinkActive],
+    template: `
     <app-intro></app-intro>
     <div class="app-container">
       <header class="app-header">
@@ -29,7 +28,7 @@ import { IntroComponent } from './intro/intro.component';
       </footer>
     </div>
   `,
-  styles: [`
+    styles: [`
     .app-container {
       min-height: 100vh;
       display: flex;

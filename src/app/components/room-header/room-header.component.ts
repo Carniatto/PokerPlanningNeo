@@ -1,12 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-room-header',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-room-header',
+    imports: [FormsModule],
+    template: `
     <header class="content-header">
       <div class="title-section">
         @if (isHost()) {
@@ -37,7 +36,7 @@ import { FormsModule } from '@angular/forms';
       }
     </header>
   `,
-  styleUrl: './room-header.component.css'
+    styleUrl: './room-header.component.css'
 })
 export class RoomHeaderComponent {
   roomId = input.required<string>();

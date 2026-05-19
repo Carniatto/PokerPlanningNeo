@@ -1,12 +1,11 @@
 import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Player } from '../../game.service';
 
 @Component({
-  selector: 'app-player-card',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-player-card',
+    imports: [],
+    template: `
     <div class="player-card">
       <div class="player-avatar-wrapper">
         <div class="player-avatar">
@@ -39,7 +38,7 @@ import { Player } from '../../game.service';
       </span>
     </div>
   `,
-  styleUrl: './player-card.component.css'
+    styleUrl: './player-card.component.css'
 })
 export class PlayerCardComponent {
   player = input.required<Player>();

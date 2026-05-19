@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 
 interface Slide {
@@ -9,10 +9,9 @@ interface Slide {
 }
 
 @Component({
-  selector: 'app-how-it-works',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
-  template: `
+    selector: 'app-how-it-works',
+    imports: [RouterLink],
+    template: `
     <div class="how-it-works-container">
       <!-- Close Button -->
       <button class="close-btn" routerLink="/">
@@ -61,7 +60,7 @@ interface Slide {
       </div>
     </div>
   `,
-  styleUrl: './how-it-works.component.css'
+    styleUrl: './how-it-works.component.css'
 })
 export class HowItWorksComponent {
   currentSlide = 0;

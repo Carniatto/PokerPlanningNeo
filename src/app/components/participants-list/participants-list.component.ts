@@ -1,15 +1,14 @@
 import { Component, input, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Player, GameService } from '../../game.service';
 import { IconComponent } from '../icon/icon.component';
 
 @Component({
-  selector: 'app-participants-list',
-  standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
-  template: `
+    selector: 'app-participants-list',
+    imports: [FormsModule, IconComponent],
+    template: `
     <div class="participants-container">
       @for (player of players(); track player.id) {
         <div class="participant-row" 
@@ -72,7 +71,7 @@ import { IconComponent } from '../icon/icon.component';
       }
     </div>
   `,
-  styleUrl: './participants-list.component.css'
+    styleUrl: './participants-list.component.css'
 })
 export class ParticipantsListComponent {
   private gameService = inject(GameService);

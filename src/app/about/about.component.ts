@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
-  selector: 'app-about',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-about',
+    imports: [],
+    template: `
     <div class="about-container">
       <div class="content-wrapper">
         <section class="hero-section">
@@ -61,6 +60,6 @@ import { CommonModule } from '@angular/common';
       </div>
     </div>
   `,
-  styleUrl: './about.component.css'
+    styleUrl: './about.component.css'
 })
 export class AboutComponent { }

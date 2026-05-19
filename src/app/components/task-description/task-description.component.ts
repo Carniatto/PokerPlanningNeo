@@ -1,12 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-task-description',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-task-description',
+    imports: [FormsModule],
+    template: `
     <section class="task-section">
       <h2>Current Task Under Estimation</h2>
       <div class="task-description-card" [class.editable]="isHost()">
@@ -27,7 +26,7 @@ import { FormsModule } from '@angular/forms';
       </div>
     </section>
   `,
-  styleUrl: './task-description.component.css'
+    styleUrl: './task-description.component.css'
 })
 export class TaskDescriptionComponent {
   story = input<string>('');

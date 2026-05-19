@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, effect, computed, OnDestroy, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../game.service';
@@ -10,18 +10,16 @@ import { RoomHeaderComponent } from '../components/room-header/room-header.compo
 import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.component';
 
 @Component({
-  selector: 'app-room',
-  standalone: true,
-  imports: [
-    CommonModule,
+    selector: 'app-room',
+    imports: [
     FormsModule,
     PlayerCardComponent,
     VotingCardComponent,
     TaskDescriptionComponent,
     RoomHeaderComponent,
     RoomSidebarComponent
-  ],
-  template: `
+],
+    template: `
     @if (isLoading()) {
       <div class="loading-container">
         <div class="loader"></div>
@@ -167,7 +165,7 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
       }
     }
   `,
-  styles: [`
+    styles: [`
     /* Session Ended Specifics */
     .session-ended-overlay {
         background-color: rgba(2, 12, 27, 0.95);

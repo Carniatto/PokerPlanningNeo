@@ -1,12 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
 @Component({
     selector: 'app-intro',
-    standalone: true,
-    imports: [CommonModule],
+    imports: [],
     templateUrl: './intro.component.html',
     styleUrls: ['./intro.component.css']
 })

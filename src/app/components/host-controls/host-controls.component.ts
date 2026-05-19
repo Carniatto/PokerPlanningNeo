@@ -1,18 +1,17 @@
 import { Component, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
-  selector: 'app-host-controls',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-host-controls',
+    imports: [],
+    template: `
     <div class="host-controls-card">
       <h3>Host Controls</h3>
       <button class="btn-neo-primary btn-control" (click)="onReveal()">REVEAL VOTES</button>
       <button class="btn-neo btn-control" (click)="onReset()">START NEW ROUND</button>
     </div>
   `,
-  styleUrl: './host-controls.component.css'
+    styleUrl: './host-controls.component.css'
 })
 export class HostControlsComponent {
   reveal = output<void>();
