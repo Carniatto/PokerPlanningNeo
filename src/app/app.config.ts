@@ -5,22 +5,13 @@ import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angul
 import { getAuth, provideAuth, connectAuthEmulator } from '@angular/fire/auth';
 
 import { routes } from './app.routes';
-
-const firebaseConfig = {
-    apiKey: "REDACTED_API_KEY",
-    authDomain: "pokerplanningneo.firebaseapp.com",
-    projectId: "pokerplanningneo",
-    storageBucket: "pokerplanningneo.firebasestorage.app",
-    messagingSenderId: "REDACTED_MESSAGING_SENDER_ID",
-    appId: "REDACTED_APP_ID",
-    measurementId: "REDACTED_MEASUREMENT_ID"
-};
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideZoneChangeDetection({ eventCoalescing: true }),
         provideRouter(routes),
-        provideFirebaseApp(() => initializeApp(firebaseConfig)),
+        provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
         provideFirestore(() => {
             const firestore = getFirestore();
             if (isDevMode()) {
