@@ -12,6 +12,7 @@
         "source": "functions"
     },
     "hosting": {
+        "site": "pokerplanningneo",
         "public": "dist/poker-planning-neo/browser",
         "ignore": [
             "firebase.json",
