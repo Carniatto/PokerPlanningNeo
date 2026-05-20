@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, computed } from '@angular/core';
 
 import { IconComponent } from '../icon/icon.component';
 
@@ -6,15 +6,14 @@ import { IconComponent } from '../icon/icon.component';
     selector: 'app-voting-card',
     imports: [IconComponent],
     template: `
-    <div class="vote-card" 
+    <div [class]="'vote-card ' + voteClass()" 
          [class.selected]="selected()"
          [class.small]="size() === 'small'"
-         [class]="getEstimateColorClass()"
          (click)="onSelect()">
         
         @if (value() === '☕') {
           <div class="icon-wrapper" 
-               [style.--coffee-stroke]="selected() ? null : 'rgba(255, 255, 255, 0.3)'">
+               [style.--coffee-stroke]="selected() ? 'var(--card-color)' : 'rgba(255, 255, 255, 0.35)'">
              <app-icon name="coffee" size="full"></app-icon>
           </div>
         } @else {
@@ -40,16 +39,18 @@ export class VotingCardComponent {
   selected = input(false);
   select = output<string>();
 
+  voteClass = computed(() => {
+    const val = this.value();
+    if (val === undefined || val === null || val === '') return 'vote-none';
+    const n = Number(val);
+    if (isNaN(n)) return 'vote-special';
+    if (n <= 1) return 'vote-small';
+    if (n <= 3) return 'vote-medium';
+    if (n <= 8) return 'vote-large';
+    return 'vote-xlarge';
+  });
+
   onSelect() {
     this.select.emit(this.value());
-  }
-
-  getEstimateColorClass(): string {
-    const val = this.value();
-    if (['0', '1', '2', '3'].includes(val)) return 'size-small';
-    if (['5', '8'].includes(val)) return 'size-medium';
-    if (['13', '21'].includes(val)) return 'size-large';
-    if (val === '☕') return 'size-coffee';
-    return 'size-unknown';
   }
 }

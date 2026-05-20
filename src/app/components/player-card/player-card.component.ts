@@ -45,11 +45,13 @@ export class PlayerCardComponent {
   isRevealed = input(false);
 
   getVoteColorClass(vote?: string | null): string {
-    if (!vote) return '';
-    if (['0', '1', '2', '3'].includes(vote)) return 'vote-small';
-    if (['5', '8'].includes(vote)) return 'vote-medium';
-    if (['13', '21'].includes(vote)) return 'vote-large';
-    if (vote === '☕') return 'vote-coffee';
-    return 'vote-unknown';
+    if (!vote) return 'vote-none';
+    const n = Number(vote);
+    if (isNaN(n)) return 'vote-special';
+    if (n <= 1) return 'vote-small';
+    if (n <= 3) return 'vote-medium';
+    if (n <= 8) return 'vote-large';
+    return 'vote-xlarge';
   }
 }
+

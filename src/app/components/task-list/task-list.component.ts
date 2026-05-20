@@ -112,9 +112,9 @@ export class TaskListComponent {
     if (!value) return 'estimate-none';
     const n = Number(value);
     if (isNaN(n)) return 'estimate-special';
-    if (n <= 3) return 'estimate-small';
-    if (n <= 8) return 'estimate-medium';
-    if (n <= 13) return 'estimate-large';
+    if (n <= 1) return 'estimate-small';
+    if (n <= 3) return 'estimate-medium';
+    if (n <= 8) return 'estimate-large';
     return 'estimate-xlarge';
   }
 
