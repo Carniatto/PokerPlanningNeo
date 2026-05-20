@@ -37,13 +37,18 @@ body {
 * {
   box-sizing: border-box;
   caret-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 input,
 textarea,
 [contenteditable],
-[contenteditable="true"] {
+[contenteditable="true"],
+.selectable-text {
   caret-color: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* --- Utilities --- */
