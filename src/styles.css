@@ -36,6 +36,28 @@ body {
 
 * {
   box-sizing: border-box;
+  caret-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Explicitly target SVG text elements to handle browser quirks with universal selector */
+text,
+tspan,
+svg,
+svg * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+input,
+textarea,
+[contenteditable],
+[contenteditable="true"],
+.selectable-text {
+  caret-color: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 /* --- Utilities --- */

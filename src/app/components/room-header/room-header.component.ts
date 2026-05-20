@@ -22,7 +22,7 @@ import { TimerComponent } from '../timer/timer.component';
           <h1>{{ title() || roomName() || 'Planning Session' }}</h1>
         }
         <div class="room-info">
-          <span class="room-code">Room Code: <strong>{{ roomId() }}</strong></span>
+          <span class="room-code">Room Code: <strong class="selectable-text">{{ roomId() }}</strong></span>
           <a href="javascript:void(0)" (click)="onCopyLink()" class="invite-link">
             <span class="link-icon">🔗</span>
             <span class="link-text">Copy Invite Link</span>
