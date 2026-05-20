@@ -55,6 +55,27 @@
     /* Hidden on desktop */
 }
 
+/* Wide and Ultrawide Screen Optimization */
+@media (min-width: 1600px) {
+    .room-sidebar {
+        width: 360px;
+        padding: 2.25rem;
+        gap: 1.75rem;
+    }
+}
+
+@media (min-width: 2560px) {
+    .room-sidebar {
+        width: 420px;
+        padding: 2.5rem;
+        gap: 2rem;
+    }
+    
+    .participants-section h3 {
+        font-size: 0.95rem;
+    }
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     :host {
