@@ -66,6 +66,7 @@
     flex-direction: column;
     justify-content: center;
     line-height: 1.2;
+    min-width: 0; /* Enable shrinking inside parent flex container */
 }
 
 .name {
@@ -75,8 +76,17 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    white-space: nowrap;
     width: 100%;
+    min-width: 0; /* Enable shrinking */
+    overflow: hidden;
+}
+
+.name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .you-tag {
@@ -84,6 +94,7 @@
     color: #94a3b8;
     font-weight: 400;
     margin-left: 4px;
+    flex-shrink: 0; /* Prevent the (You) tag from shrinking */
 }
 
 .vote-indicator {
@@ -243,6 +254,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0; /* Prevent the edit button from shrinking */
 }
 
 .btn-edit:hover {
