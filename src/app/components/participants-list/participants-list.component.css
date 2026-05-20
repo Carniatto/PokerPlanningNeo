@@ -318,6 +318,7 @@
     letter-spacing: 0.5px;
     margin-left: 6px;
     box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
+    flex-shrink: 0; /* Prevent Host badge from shrinking */
 }
 
 .btn-promote {
@@ -331,6 +332,7 @@
     cursor: pointer;
     margin-left: 6px;
     transition: all 0.2s;
+    flex-shrink: 0; /* Prevent Promote button from shrinking */
 }
 
 .btn-promote:hover {
