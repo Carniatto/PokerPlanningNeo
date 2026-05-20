@@ -28,19 +28,9 @@ jobs:
           };
           EOF
       - run: pnpm install && pnpm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_POKERPLANNINGNEO }}'
-          channelId: live
-          projectId: pokerplanningneo
       - name: Install Functions Dependencies
         run: cd functions && pnpm install
       - name: Build Functions
         run: cd functions && pnpm run build
-      - name: Deploy Cloud Functions
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only functions
-        env:
-          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_POKERPLANNINGNEO }}
+      - name: Deploy to Firebase
+        run: pnpm exec firebase deploy --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
