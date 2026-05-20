@@ -36,6 +36,14 @@ body {
 
 * {
   box-sizing: border-box;
+  caret-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable],
+[contenteditable="true"] {
+  caret-color: auto;
 }
 
 /* --- Utilities --- */
