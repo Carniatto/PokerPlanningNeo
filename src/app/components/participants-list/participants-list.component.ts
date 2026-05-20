@@ -39,7 +39,7 @@ import { IconComponent } from '../icon/icon.component';
                </div>
              } @else {
                <span class="name" (click)="enableEdit(player)">
-                  {{ player.name }} 
+                  <span class="name-text">{{ player.name }}</span>
                   @if (player.id === currentUserId()) { 
                     <span class="you-tag">(You)</span> 
                     <button class="btn-edit" (click)="enableEdit(player); $event.stopPropagation()" title="Edit Name">
