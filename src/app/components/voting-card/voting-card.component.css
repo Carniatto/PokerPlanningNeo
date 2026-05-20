@@ -1,31 +1,63 @@
 .vote-card {
     aspect-ratio: 2/3;
     background: rgba(10, 10, 20, 0.6);
-    border: 2px solid rgba(139, 92, 246, 0.3);
-    /* Faint purple border */
+    border: 2px solid var(--card-border-dim, rgba(139, 92, 246, 0.3));
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 4.5rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--card-color, rgba(255, 255, 255, 0.3));
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(10px);
     position: relative;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+    /* Default fallback theme variables */
+    --card-color: #d946ef;
+    --card-border-dim: rgba(139, 92, 246, 0.3);
+    --card-glow: rgba(217, 70, 239, 0.45);
+}
+
+/* Card Color Variables by Value Categories */
+.vote-card.vote-small {
+  --card-color: #60a5fa; /* Blue */
+  --card-border-dim: rgba(96, 165, 250, 0.25);
+  --card-glow: rgba(96, 165, 250, 0.45);
+}
+.vote-card.vote-medium {
+  --card-color: #c084fc; /* Lavender/Purple */
+  --card-border-dim: rgba(168, 85, 247, 0.25);
+  --card-glow: rgba(168, 85, 247, 0.45);
+}
+.vote-card.vote-large {
+  --card-color: #fb923c; /* Orange */
+  --card-border-dim: rgba(249, 115, 22, 0.25);
+  --card-glow: rgba(249, 115, 22, 0.45);
+}
+.vote-card.vote-xlarge {
+  --card-color: #f43f5e; /* Pink/Salmon */
+  --card-border-dim: rgba(244, 63, 94, 0.25);
+  --card-glow: rgba(244, 63, 94, 0.45);
+}
+.vote-card.vote-special {
+  --card-color: #d946ef; /* Fuchsia */
+  --card-border-dim: rgba(217, 70, 239, 0.25);
+  --card-glow: rgba(217, 70, 239, 0.45);
+}
+.vote-card.vote-none {
+  --card-color: rgba(255, 255, 255, 0.2);
+  --card-border-dim: rgba(255, 255, 255, 0.1);
+  --card-glow: transparent;
 }
 
 .vote-card.small {
     border-radius: 8px;
     border-width: 1.5px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    /* Font size will be handled by container or scaling, 
-       but let's adjust it primarily relative to the container size if needed,
-       or just rely on aspect-ratio and width from parent. 
-       However, the SVG scales, so mainly border/radius needs adjustment. */
 }
 
 /* Tech pattern overlay */
@@ -36,7 +68,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle at center, var(--card-border-dim) 0%, transparent 70%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -44,10 +76,8 @@
 @media (hover: hover) {
     .vote-card:hover {
         transform: translateY(-5px) scale(1.02);
-        border-color: #d946ef;
-        /* Fuchsia-500 */
-        box-shadow: 0 0 15px rgba(217, 70, 239, 0.4);
-        color: rgba(255, 255, 255, 0.8);
+        border-color: var(--card-color);
+        box-shadow: 0 0 15px var(--card-glow);
     }
 
     .vote-card:hover::before {
@@ -57,19 +87,18 @@
 
 .vote-card.selected {
     background: rgba(10, 10, 20, 0.8);
-    border: 2px solid #d946ef;
-    /* Bright Neon Pink/Purple border */
+    border: 2px solid var(--card-color);
     box-shadow:
-        0 0 20px rgba(217, 70, 239, 0.5),
-        inset 0 0 20px rgba(217, 70, 239, 0.2);
+        0 0 20px var(--card-glow),
+        inset 0 0 20px var(--card-border-dim);
     transform: translateY(-8px) scale(1.05);
 }
 
 .vote-card.small.selected {
     transform: translateY(-4px) scale(1.05);
     box-shadow:
-        0 0 10px rgba(217, 70, 239, 0.5),
-        inset 0 0 10px rgba(217, 70, 239, 0.2);
+        0 0 10px var(--card-glow),
+        inset 0 0 10px var(--card-border-dim);
 }
 
 .card-content {
@@ -83,19 +112,22 @@
     font-weight: 700;
     font-size: 60px;
     /* Scaled within viewBox */
-    fill: rgba(255, 255, 255, 0.3);
+    fill: var(--card-color);
+    opacity: 0.35;
     transition: all 0.3s ease;
+}
+
+.vote-card:hover .svg-value {
+    opacity: 0.85;
 }
 
 .vote-card.selected .svg-value {
     fill: none;
-    stroke: url(#neonGradient);
+    stroke: var(--card-color);
     stroke-width: 1.5px;
-    filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.5));
+    opacity: 1;
+    filter: drop-shadow(0 0 5px var(--card-glow));
 }
-
-/* SVG Icon Styles (Coffee Cup) */
-/* Moved to IconComponent */
 
 .icon-wrapper {
     width: 60%;
@@ -104,67 +136,11 @@
     justify-content: center;
 }
 
-.vote-card.size-small {
-    border-color: rgba(34, 211, 238, 0.3) !important;
-}
-.vote-card.size-small:hover, .vote-card.size-small.selected {
-    border-color: #22d3ee !important;
-    box-shadow: 0 0 15px rgba(34, 211, 238, 0.5) !important;
-    color: #22d3ee !important;
-}
-.vote-card.size-small.selected .svg-value {
-    stroke: #22d3ee !important;
-}
-
-.vote-card.size-medium {
-    border-color: rgba(16, 185, 129, 0.3) !important;
-}
-.vote-card.size-medium:hover, .vote-card.size-medium.selected {
-    border-color: #10b981 !important;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5) !important;
-    color: #10b981 !important;
-}
-.vote-card.size-medium.selected .svg-value {
-    stroke: #10b981 !important;
-}
-
-.vote-card.size-large {
-    border-color: rgba(239, 68, 68, 0.3) !important;
-}
-.vote-card.size-large:hover, .vote-card.size-large.selected {
-    border-color: #ef4444 !important;
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
-    color: #ef4444 !important;
-}
-.vote-card.size-large.selected .svg-value {
-    stroke: #ef4444 !important;
-}
-
-.vote-card.size-coffee {
-    border-color: rgba(120, 53, 15, 0.3) !important;
-}
-.vote-card.size-coffee:hover, .vote-card.size-coffee.selected {
-    border-color: #f59e0b !important;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5) !important;
-    color: #f59e0b !important;
-}
-
-.vote-card.size-unknown {
-    border-color: rgba(107, 114, 128, 0.3) !important;
-}
-.vote-card.size-unknown:hover, .vote-card.size-unknown.selected {
-    border-color: #9ca3af !important;
-    box-shadow: 0 0 15px rgba(156, 163, 175, 0.5) !important;
-    color: #9ca3af !important;
-}
-
 /* Mobile adjustments for consistency */
 @media (max-width: 768px) {
-
     .vote-card,
     .vote-card.small {
         border-width: 1.5px !important;
         border-radius: 12px !important;
-        /* Force consistency */
     }
 }
