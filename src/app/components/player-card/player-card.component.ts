@@ -48,9 +48,9 @@ export class PlayerCardComponent {
     if (!vote) return 'vote-none';
     const n = Number(vote);
     if (isNaN(n)) return 'vote-special';
-    if (n <= 3) return 'vote-small';
-    if (n <= 8) return 'vote-medium';
-    if (n <= 13) return 'vote-large';
+    if (n <= 1) return 'vote-small';
+    if (n <= 3) return 'vote-medium';
+    if (n <= 8) return 'vote-large';
     return 'vote-xlarge';
   }
 }
