@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - name: Inject Secrets into Environment
         run: |
           cat << EOF > src/environments/environment.prod.ts
@@ -24,7 +27,7 @@ jobs:
             }
           };
           EOF
-      - run: npm ci && npm run build
+      - run: pnpm install && pnpm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -32,9 +35,9 @@ jobs:
           channelId: live
           projectId: pokerplanningneo
       - name: Install Functions Dependencies
-        run: cd functions && npm ci
+        run: cd functions && pnpm install
       - name: Build Functions
-        run: cd functions && npm run build
+        run: cd functions && pnpm run build
       - name: Deploy Cloud Functions
         uses: w9jds/firebase-action@master
         with:
