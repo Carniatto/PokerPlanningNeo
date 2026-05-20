@@ -3,7 +3,6 @@ import { Component, inject, OnInit, signal, effect, computed, OnDestroy, HostLis
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../game.service';
-import { PlayerCardComponent } from '../components/player-card/player-card.component';
 import { VotingCardComponent } from '../components/voting-card/voting-card.component';
 import { TaskDescriptionComponent } from '../components/task-description/task-description.component';
 import { RoomHeaderComponent } from '../components/room-header/room-header.component';
@@ -13,7 +12,6 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
     selector: 'app-room',
     imports: [
     FormsModule,
-    PlayerCardComponent,
     VotingCardComponent,
     TaskDescriptionComponent,
     RoomHeaderComponent,
@@ -47,26 +45,15 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                 (storyBlur)="saveCurrentStory()">
             </app-task-description>
 
-            <section class="players-section">
-              <h2>Players</h2>
-              <div class="players-grid">
-                @for (player of players(); track player.id) {
-                  <app-player-card [player]="player" [isRevealed]="areCardsRevealed()"></app-player-card>
-                }
-              </div>
-            </section>
-            
             @if (!areCardsRevealed()) {
               <section class="deck-section">
                   <h2>Your Deck</h2>
-                  <div class="cards-row">
+                  <div class="voting-grid">
                       @for (value of votingValues; track value) {
                         <app-voting-card 
-                          class="host-voting-card"
                           [value]="value" 
                           [selected]="selectedValue() === value"
-                          (select)="selectVote($event)"
-                          size="small">
+                          (select)="selectVote($event)">
                         </app-voting-card>
                       }
                   </div>
@@ -225,16 +212,6 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
     .players-grid { display: flex; gap: 1.5rem; flex-wrap: wrap; }
     
     .deck-section { margin-top: 3rem; }
-    .cards-row { 
-      display: flex; 
-      gap: 0.75rem; 
-      flex-wrap: wrap;
-    }
-    
-    .host-voting-card {
-      width: 50px;
-      /* Height is auto determined by aspect-ratio 2/3 in component */
-    }
 
     /* PLAYER VIEW SPECIFIC STYLES */
     .player-layout {
@@ -503,19 +480,6 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
       
       .deck-section h2 {
           display: none; /* Hide 'Your Deck' on mobile */
-      }
-      
-      .cards-row {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 0.5rem;
-          justify-items: start; /* Align items to start of cell if needed, but stretch is default */
-      }
-      
-      .host-voting-card {
-          width: 100%; /* Fill the grid cell */
-          max-width: none; /* remove limits */
-          min-width: 0;
       }
       
       .players-grid {
