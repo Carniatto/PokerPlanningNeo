@@ -102,3 +102,35 @@
         z-index: 10;
         transform: rotate(10deg);
     }
+
+    .revealed-value.vote-small {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        box-shadow: 0 0 15px rgba(96, 165, 250, 0.5) !important;
+        border-color: #60a5fa !important;
+    }
+    .revealed-value.vote-medium {
+        background: linear-gradient(135deg, #7c3aed, #6d28d9) !important;
+        box-shadow: 0 0 15px rgba(192, 132, 252, 0.5) !important;
+        border-color: #c084fc !important;
+    }
+    .revealed-value.vote-large {
+        background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+        box-shadow: 0 0 15px rgba(251, 146, 60, 0.5) !important;
+        border-color: #fb923c !important;
+    }
+    .revealed-value.vote-xlarge {
+        background: linear-gradient(135deg, #e11d48, #be123c) !important;
+        box-shadow: 0 0 15px rgba(244, 63, 94, 0.5) !important;
+        border-color: #f43f5e !important;
+    }
+    .revealed-value.vote-special {
+        background: linear-gradient(135deg, #c026d3, #a21caf) !important;
+        box-shadow: 0 0 15px rgba(217, 70, 239, 0.5) !important;
+        border-color: #d946ef !important;
+    }
+    .revealed-value.vote-none {
+        background: rgba(17, 34, 64, 0.4) !important;
+        box-shadow: none !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: rgba(255, 255, 255, 0.3) !important;
+    }

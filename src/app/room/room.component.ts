@@ -1,23 +1,25 @@
 import { Component, inject, OnInit, signal, effect, computed, OnDestroy, HostListener } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../game.service';
-import { PlayerCardComponent } from '../components/player-card/player-card.component';
 import { VotingCardComponent } from '../components/voting-card/voting-card.component';
 import { TaskDescriptionComponent } from '../components/task-description/task-description.component';
 import { RoomHeaderComponent } from '../components/room-header/room-header.component';
 import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.component';
+import { TaskListComponent } from '../components/task-list/task-list.component';
 
 @Component({
     selector: 'app-room',
     imports: [
     FormsModule,
-    PlayerCardComponent,
+    NgTemplateOutlet,
     VotingCardComponent,
     TaskDescriptionComponent,
     RoomHeaderComponent,
-    RoomSidebarComponent
+    RoomSidebarComponent,
+    TaskListComponent
 ],
     template: `
     @if (isLoading()) {
@@ -34,6 +36,7 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
             <app-room-header [roomId]="roomId || ''" 
                             [isHost]="true"
                             [roomName]="currentRoomName()"
+                            [title]="areCardsRevealed() ? 'Revealed Results' : ''"
                             (roomNameChange)="onRoomNameChange($event)"
                             (nameBlur)="saveRoomName()"
                             (endSession)="leaveRoom()" 
@@ -47,31 +50,61 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                 (storyBlur)="saveCurrentStory()">
             </app-task-description>
 
-            <section class="players-section">
-              <h2>Players</h2>
-              <div class="players-grid">
-                @for (player of players(); track player.id) {
-                  <app-player-card [player]="player" [isRevealed]="areCardsRevealed()"></app-player-card>
-                }
-              </div>
-            </section>
-            
             @if (!areCardsRevealed()) {
               <section class="deck-section">
                   <h2>Your Deck</h2>
-                  <div class="cards-row">
+                  <div class="voting-grid">
                       @for (value of votingValues; track value) {
                         <app-voting-card 
-                          class="host-voting-card"
                           [value]="value" 
                           [selected]="selectedValue() === value"
-                          (select)="selectVote($event)"
-                          size="small">
+                          (select)="selectVote($event)">
                         </app-voting-card>
                       }
                   </div>
               </section>
+            } @else {
+              <!-- FINAL VOTES GRID -->
+              <section class="final-votes-section">
+                <div class="final-votes-header">
+                  <h2>Final Votes</h2>
+                  <span class="average-badge">Average: {{ averageVote() }}</span>
+                </div>
+                
+                <div class="grouped-cards-grid">
+                  @for (group of groupedVotes(); track group.vote) {
+                    <div class="final-vote-card-wrapper">
+                      <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+                        <div class="vote-value-text">{{ group.vote || '-' }}</div>
+                      </div>
+                      <div class="avatar-stack">
+                        @for (player of group.players.slice(0, 4); track player.id) {
+                          <span class="stacked-avatar"
+                                [class.is-host]="isPlayerHost(player.id)"
+                                [class.is-current]="player.id === currentUser()?.uid"
+                                [attr.data-tooltip]="player.name">
+                            {{ getInitials(player.name) }}
+                          </span>
+                        }
+                        @if (group.players.length > 4) {
+                          <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </section>
             }
+
+            <app-task-list
+              [roomId]="roomId || ''"
+              [isHost]="true"
+              [tasks]="currentRoomTasks()"
+              [currentStory]="currentStory()"
+              (selectTask)="selectTaskForEstimation($event)">
+            </app-task-list>
+
+            <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
           </main>
 
           <!-- Right Column: Host Sidebar (Direct child of flex container) -->
@@ -79,9 +112,11 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
             [isHost]="true" 
             [players]="sortedPlayers()" 
             [areCardsRevealed]="areCardsRevealed()"
+            [hasVotes]="hasVotes()"
             [currentUserId]="currentUser()?.uid"
             (reveal)="revealVotes()"
-            (reset)="startNewRound()">
+            (replay)="replayRound()"
+            (estimateNew)="estimateNewTask()">
           </app-room-sidebar>
         </div>
       }
@@ -95,6 +130,7 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
               <app-room-header [roomId]="roomId || ''" 
                               [isHost]="false"
                               [roomName]="currentRoomName()"
+                              [title]="areCardsRevealed() ? 'Revealed Results' : ''"
                               (endSession)="leaveRoom()" 
                               (copyLink)="copyInviteLink()">
               </app-room-header>
@@ -122,7 +158,48 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                     </app-voting-card>
                   }
                 </div>
+              } @else {
+                <!-- FINAL VOTES GRID -->
+                <section class="final-votes-section">
+                  <div class="final-votes-header">
+                    <h2>Final Votes</h2>
+                    <span class="average-badge">Average: {{ averageVote() }}</span>
+                  </div>
+                  
+                  <div class="grouped-cards-grid">
+                    @for (group of groupedVotes(); track group.vote) {
+                      <div class="final-vote-card-wrapper">
+                        <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+                          <div class="vote-value-text">{{ group.vote || '-' }}</div>
+                        </div>
+                        <div class="avatar-stack">
+                          @for (player of group.players.slice(0, 4); track player.id) {
+                            <span class="stacked-avatar"
+                                  [class.is-host]="isPlayerHost(player.id)"
+                                  [class.is-current]="player.id === currentUser()?.uid"
+                                  [attr.data-tooltip]="player.name">
+                              {{ getInitials(player.name) }}
+                            </span>
+                          }
+                          @if (group.players.length > 4) {
+                            <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </section>
               }
+
+              <app-task-list
+                [roomId]="roomId || ''"
+                [isHost]="false"
+                [tasks]="currentRoomTasks()"
+                [currentStory]="currentStory()"
+                (selectTask)="selectTaskForEstimation($event)">
+              </app-task-list>
+
+              <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
             </main>
 
             <!-- Right Sidebar -->
@@ -130,8 +207,8 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
                [isHost]="false"
                [players]="sortedPlayers()" 
                [areCardsRevealed]="areCardsRevealed()"
+               [hasVotes]="hasVotes()"
                [currentUserId]="currentUser()?.uid">
-
             </app-room-sidebar>
           </div>
         </div>
@@ -163,6 +240,71 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
           </div>
         </div>
       }
+
+      <!-- Emulator Template -->
+      <ng-template #emulatorTemplate>
+        <section class="emulator-panel glass-panel">
+          <div class="emulator-header" (click)="toggleEmulator()">
+            <div class="emulator-title-wrapper">
+              <svg class="emulator-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: var(--neon-blue, #00f3ff);">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <h3>Local Player Emulator</h3>
+              <span class="emulator-badge">Dev Tool</span>
+            </div>
+            <button class="btn-toggle-emulator">
+              {{ isEmulatorExpanded() ? '▼ Collapse' : '▲ Expand' }}
+            </button>
+          </div>
+
+          @if (isEmulatorExpanded()) {
+            <div class="emulator-content">
+              <div class="emulator-actions-top">
+                <button class="btn-emulator-action" (click)="addQuickMockPlayers(5)">
+                  + Add 5 Mock Players
+                </button>
+                <button class="btn-emulator-action btn-secondary" [disabled]="mockPlayers().length === 0" (click)="voteAllMockPlayersRandomly()">
+                  🎲 Vote Randomly
+                </button>
+                <button class="btn-emulator-action btn-secondary" [disabled]="mockPlayers().length === 0" (click)="clearAllMockPlayerVotes()">
+                  🧹 Clear Votes
+                </button>
+                <button class="btn-emulator-action btn-danger" [disabled]="mockPlayers().length === 0" (click)="removeAllMockPlayers()">
+                  🗑️ Remove All
+                </button>
+              </div>
+
+              <div class="mock-players-grid">
+                @for (player of mockPlayers(); track player.id) {
+                  <div class="mock-player-row">
+                    <span class="mock-player-name">{{ player.name }}</span>
+                    
+                    <div class="mock-player-vote-actions">
+                      <select [ngModel]="player.vote || ''" 
+                              (ngModelChange)="submitMockVote(player.id, $event)"
+                              class="mock-vote-select">
+                        <option value="">No vote</option>
+                        @for (val of votingValues; track val) {
+                          <option [value]="val">{{ val }}</option>
+                        }
+                      </select>
+                      <button class="btn-mock-delete" (click)="removeMockPlayer(player.id)" title="Remove player">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                } @empty {
+                  <div class="emulator-empty-state">
+                    No mock players. Click "+ Add 5 Mock Players" to simulate a real estimation session!
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </section>
+      </ng-template>
     }
   `,
     styles: [`
@@ -207,10 +349,34 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
       height: 100vh;
       background-color: #0a192f;
       overflow: hidden;
+      width: 100%;
     }
 
     /* Main Content */
-    .main-content { flex: 1; padding: 2rem 3rem; overflow-y: auto; }
+    .main-content {
+      flex: 1;
+      padding: 2rem 3rem;
+      overflow-y: auto;
+      max-width: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .players-section, .deck-section {
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      margin-bottom: 2rem;
+    }
+
+    .players-grid, .cards-row {
+      justify-content: flex-start;
+      width: 100%;
+    }
         
     .room-sidebar {
       width: 320px;
@@ -225,16 +391,6 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
     .players-grid { display: flex; gap: 1.5rem; flex-wrap: wrap; }
     
     .deck-section { margin-top: 3rem; }
-    .cards-row { 
-      display: flex; 
-      gap: 0.75rem; 
-      flex-wrap: wrap;
-    }
-    
-    .host-voting-card {
-      width: 50px;
-      /* Height is auto determined by aspect-ratio 2/3 in component */
-    }
 
     /* PLAYER VIEW SPECIFIC STYLES */
     .player-layout {
@@ -248,22 +404,34 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
       display: flex;
       flex: 1;
       overflow: hidden;
+      width: 100%;
+      max-width: 100%;
     }
 
     .voting-area {
       flex: 1;
       padding: 3rem;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
 
-    .task-header { margin-bottom: 3rem; }
+    .task-header {
+      width: 100%;
+      max-width: 100%;
+      text-align: left;
+      margin-bottom: 3rem;
+    }
     .status-text { color: #8892b0; font-size: 1.2rem; } 
 
     .voting-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 1.5rem;
-      max-width: 800px;
+      width: 100%;
+      max-width: 100%;
+      justify-content: start;
     }
 
 
@@ -505,23 +673,480 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
           display: none; /* Hide 'Your Deck' on mobile */
       }
       
-      .cards-row {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 0.5rem;
-          justify-items: start; /* Align items to start of cell if needed, but stretch is default */
-      }
-      
-      .host-voting-card {
-          width: 100%; /* Fill the grid cell */
-          max-width: none; /* remove limits */
-          min-width: 0;
-      }
-      
       .players-grid {
           justify-content: center;
           gap: 0.5rem;
       }
+    }
+
+    /* Final Votes Styles */
+    .final-votes-section {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 2.5rem;
+    }
+
+    .final-votes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+
+    .final-votes-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .average-badge {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      color: var(--neon-cyan);
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.1);
+    }
+
+    .grouped-cards-grid {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .final-vote-card-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 110px;
+    }
+
+    .grouped-vote-card {
+      background: rgba(17, 34, 64, 0.4);
+      backdrop-filter: blur(12px);
+      border: 2px solid var(--border-glass);
+      border-radius: 12px;
+      width: 110px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .grouped-vote-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .vote-small {
+      border-color: rgba(96, 165, 250, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(96, 165, 250, 0.15);
+    }
+    .vote-small .vote-value-text {
+      color: #60a5fa;
+      text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+    }
+
+    .vote-medium {
+      border-color: rgba(168, 85, 247, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(168, 85, 247, 0.15);
+    }
+    .vote-medium .vote-value-text {
+      color: #c084fc;
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+    }
+
+    .vote-large {
+      border-color: rgba(249, 115, 22, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(249, 115, 22, 0.15);
+    }
+    .vote-large .vote-value-text {
+      color: #fb923c;
+      text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+    }
+
+    .vote-xlarge {
+      border-color: rgba(244, 63, 94, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(244, 63, 94, 0.15);
+    }
+    .vote-xlarge .vote-value-text {
+      color: #f43f5e;
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+    }
+
+    .vote-special {
+      border-color: rgba(217, 70, 239, 0.5);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(217, 70, 239, 0.15);
+    }
+    .vote-special .vote-value-text {
+      color: #d946ef;
+      text-shadow: 0 0 10px rgba(217, 70, 239, 0.3);
+    }
+
+    .vote-none {
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+    }
+    .vote-none .vote-value-text {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .vote-value-text {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .vote-player-info {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.75rem;
+      width: 100%;
+    }
+
+    .player-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      font-size: 0.65rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .player-avatar.is-host {
+      background: #581c87;
+      border-color: #a855f7;
+      color: #f3e8ff;
+    }
+
+    .player-avatar.is-current {
+      border-color: #22d3ee;
+      box-shadow: 0 0 6px rgba(34, 211, 238, 0.4);
+    }
+
+    .player-name {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100% - 24px);
+    }
+
+    /* ===== Avatar Stack (Grouped Votes) ===== */
+    .avatar-stack {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.75rem;
+      /* negative margin creates overlap effect */
+    }
+
+    .stacked-avatar {
+      position: relative;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 2px solid #0a192f;
+      color: #cbd5e1;
+      font-size: 0.6rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-left: -8px;
+      cursor: default;
+      transition: transform 0.2s ease, z-index 0s;
+      z-index: 1;
+    }
+
+    .stacked-avatar:first-child {
+      margin-left: 0;
+    }
+
+    .stacked-avatar:hover {
+      transform: translateY(-4px) scale(1.15);
+      z-index: 10;
+    }
+
+    /* CSS Tooltip via data-tooltip attribute */
+    .stacked-avatar::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2, 12, 27, 0.92);
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 500;
+      white-space: nowrap;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 100;
+    }
+
+    .stacked-avatar:hover::after {
+      opacity: 1;
+    }
+
+    .stacked-avatar.is-host {
+      background: #581c87;
+      border-color: #a855f7;
+      color: #f3e8ff;
+    }
+
+    .stacked-avatar.is-current {
+      border-color: #22d3ee;
+      box-shadow: 0 0 6px rgba(34, 211, 238, 0.4);
+    }
+
+    .overflow-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      font-size: 0.6rem;
+      font-weight: 700;
+      margin-left: -8px;
+      flex-shrink: 0;
+    }
+
+    /* Emulator Styles */
+    .emulator-panel {
+      margin-top: 3rem;
+      width: 100%;
+      border-radius: 12px;
+      background: rgba(17, 34, 64, 0.4);
+      border: 1px dashed rgba(0, 243, 255, 0.3);
+      padding: 1rem 1.5rem;
+      box-sizing: border-box;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+    .emulator-panel:hover {
+      background: rgba(17, 34, 64, 0.5);
+      border-color: rgba(0, 243, 255, 0.5);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
+    }
+
+    .emulator-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .emulator-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .emulator-title-wrapper h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .emulator-badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 243, 255, 0.15);
+      color: var(--neon-blue, #00f3ff);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+    }
+
+    .btn-toggle-emulator {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-toggle-emulator:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .emulator-content {
+      margin-top: 1.25rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .emulator-actions-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .btn-emulator-action {
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(188, 19, 254, 0.2));
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-emulator-action:not(:disabled):hover {
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.3), rgba(188, 19, 254, 0.3));
+      border-color: rgba(0, 243, 255, 0.6);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-emulator-action.btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+
+    .btn-emulator-action.btn-secondary:not(:disabled):hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .btn-emulator-action.btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .btn-emulator-action.btn-danger:not(:disabled):hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: white;
+    }
+
+    .btn-emulator-action:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .mock-players-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .mock-player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.6rem 0.8rem;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .mock-player-row:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .mock-player-name {
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    .mock-player-vote-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mock-vote-select {
+      background: #020c1b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mock-vote-select:focus {
+      border-color: var(--neon-blue, #00f3ff);
+    }
+
+    .btn-mock-delete {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-mock-delete:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .emulator-empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 1.5rem;
+      color: #64748b;
+      font-size: 0.9rem;
+      border: 1px dashed rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
     }
   `]
 })
@@ -537,6 +1162,11 @@ export class RoomComponent implements OnInit, OnDestroy {
   isHost = this.gameService.isHost;
   currentUser = this.gameService.currentUser;
   areCardsRevealed = this.gameService.areCardsRevealed;
+
+  currentRoomTasks = computed(() => this.gameService.currentRoomData()?.tasks || []);
+  hasVotes = computed(() => {
+    return this.players().some(p => p.vote !== undefined && p.vote !== null);
+  });
 
   // Local signals for editable fields
   currentRoomName = signal<string>('');
@@ -560,7 +1190,6 @@ export class RoomComponent implements OnInit, OnDestroy {
   // Player View State
   votingValues = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
-  // Computed selected value from server state (Single Source of Truth)
   selectedValue = computed(() => {
     const user = this.currentUser();
     const players = this.players();
@@ -568,6 +1197,69 @@ export class RoomComponent implements OnInit, OnDestroy {
     const me = players.find(p => p.id === user.uid);
     return me?.vote || null;
   });
+
+  averageVote = computed(() => {
+    const votes = this.players()
+      .map(p => p.vote)
+      .filter(v => v !== undefined && v !== null && v !== '?' && v !== '☕')
+      .map(v => Number(v))
+      .filter(n => !isNaN(n));
+    if (votes.length === 0) return '-';
+    return (votes.reduce((a, b) => a + b, 0) / votes.length).toFixed(1);
+  });
+
+  groupedVotes = computed(() => {
+    const players = this.players();
+    const groups: { [key: string]: typeof players } = {};
+    players.forEach(p => {
+      if (p.vote !== undefined && p.vote !== null) {
+        const v = String(p.vote);
+        if (!groups[v]) {
+          groups[v] = [];
+        }
+        groups[v].push(p);
+      }
+    });
+
+    const specialValues = ['?', '☕'];
+
+    return Object.entries(groups)
+      .map(([vote, groupPlayers]) => ({
+        vote,
+        count: groupPlayers.length,
+        players: groupPlayers
+      }))
+      .sort((a, b) => {
+        const aIsSpecial = specialValues.includes(a.vote);
+        const bIsSpecial = specialValues.includes(b.vote);
+        // Specials always go to the end
+        if (aIsSpecial && !bIsSpecial) return 1;
+        if (!aIsSpecial && bIsSpecial) return -1;
+        if (aIsSpecial && bIsSpecial) return a.vote.localeCompare(b.vote);
+        // Both numeric — ascending order
+        return Number(a.vote) - Number(b.vote);
+      });
+  });
+
+  getVoteClass(voteValue: string | number | undefined | null): string {
+    if (voteValue === undefined || voteValue === null || voteValue === '') return 'vote-none';
+    const n = Number(voteValue);
+    if (isNaN(n)) return 'vote-special';
+    if (n <= 1) return 'vote-small';
+    if (n <= 3) return 'vote-medium';
+    if (n <= 8) return 'vote-large';
+    return 'vote-xlarge';
+  }
+
+  getInitials(name: string): string {
+    return name ? name.substring(0, 2).toUpperCase() : '??';
+  }
+
+  isPlayerHost(playerId: string): boolean {
+    const room = this.gameService.currentRoomData();
+    if (!room) return false;
+    return room.hostId === playerId || !!(room.hostIds && room.hostIds.includes(playerId));
+  }
 
   // Name Prompt State
   showNamePrompt = signal(true);
@@ -783,6 +1475,43 @@ export class RoomComponent implements OnInit, OnDestroy {
     // selectedValue auto-updates via computed
   }
 
+  replayRound() {
+    this.gameService.resetVotes();
+  }
+
+  async estimateNewTask() {
+    if (!this.roomId) return;
+    
+    // Calculate consensus/average vote from current players
+    const votes = this.players()
+      .map(p => p.vote)
+      .filter(v => v !== undefined && v !== null && v !== '?' && v !== '☕')
+      .map(v => Number(v))
+      .filter(n => !isNaN(n));
+      
+    let finalEstimate = '';
+    if (votes.length > 0) {
+      const allSame = votes.every(v => v === votes[0]);
+      if (allSame) {
+        finalEstimate = String(votes[0]);
+      } else {
+        // If not perfect consensus, use average rounded to 1 decimal place
+        finalEstimate = (votes.reduce((a, b) => a + b, 0) / votes.length).toFixed(1);
+      }
+    }
+    
+    // Call estimateNewTask to save the current estimate and reset the board
+    const storyDesc = this.currentStory().trim();
+    await this.gameService.estimateNewTask(this.roomId, storyDesc, finalEstimate);
+    this.currentStory.set('');
+  }
+
+  async selectTaskForEstimation(task: any) {
+    if (!this.roomId) return;
+    await this.gameService.updateCurrentStory(this.roomId, task.description);
+    this.gameService.resetVotes();
+  }
+
   // --- Header & Story Editing Methods ---
 
   onRoomNameChange(newName: string) {
@@ -824,6 +1553,59 @@ export class RoomComponent implements OnInit, OnDestroy {
     }
     // Always clear local subscription/ID when component is destroyed so we re-init correctly on return
     this.gameService.cleanupLocalGameState();
+  }
+
+  isEmulatorExpanded = signal<boolean>(false);
+
+  mockPlayers = computed(() => {
+    return this.players().filter(p => p.id.startsWith('mock-'));
+  });
+
+  toggleEmulator() {
+    this.isEmulatorExpanded.set(!this.isEmulatorExpanded());
+  }
+
+  async addQuickMockPlayers(count: number) {
+    if (!this.roomId) return;
+    const names = ['Developer 💻', 'Designer 🎨', 'QA Engineer 🔍', 'Product Owner 👑', 'Scrum Master ⏱️', 'Architect 🏛️', 'Security Specialist 🛡️', 'Database Admin 🗄️'];
+    const shuffle = [...names].sort(() => 0.5 - Math.random());
+    for (let i = 0; i < count; i++) {
+      const name = shuffle[i % shuffle.length] + ' ' + (this.mockPlayers().length + 1);
+      await this.gameService.addMockPlayer(this.roomId, name);
+    }
+  }
+
+  async removeMockPlayer(mockId: string) {
+    if (!this.roomId) return;
+    await this.gameService.removeMockPlayer(this.roomId, mockId);
+  }
+
+  async removeAllMockPlayers() {
+    if (!this.roomId) return;
+    for (const player of this.mockPlayers()) {
+      await this.gameService.removeMockPlayer(this.roomId, player.id);
+    }
+  }
+
+  async submitMockVote(mockId: string, vote: string) {
+    if (!this.roomId) return;
+    const voteVal = vote === '' ? null : vote;
+    await this.gameService.submitMockVote(this.roomId, mockId, voteVal);
+  }
+
+  async voteAllMockPlayersRandomly() {
+    if (!this.roomId) return;
+    for (const player of this.mockPlayers()) {
+      const randomVote = this.votingValues[Math.floor(Math.random() * this.votingValues.length)];
+      await this.gameService.submitMockVote(this.roomId, player.id, randomVote);
+    }
+  }
+
+  async clearAllMockPlayerVotes() {
+    if (!this.roomId) return;
+    for (const player of this.mockPlayers()) {
+      await this.gameService.submitMockVote(this.roomId, player.id, null);
+    }
   }
 
   copyInviteLink() {

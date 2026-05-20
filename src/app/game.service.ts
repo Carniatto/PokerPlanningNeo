@@ -13,8 +13,16 @@ export interface Player {
     avatarUrl?: string;
 }
 
+export interface Task {
+    id: string;
+    description: string;
+    finalEstimate?: string;
+    createdAt: number;
+}
+
 export interface Room {
     hostId: string;
+    hostIds?: string[];
     areCardsRevealed: boolean;
     players: Player[];
     roomName?: string;
@@ -23,6 +31,8 @@ export interface Room {
     lastActiveAt?: number;
     currentPlayerId?: string;
     status?: 'active' | 'ended';
+    tasks?: Task[];
+    timerEndsAt?: number | null;
 }
 
 const STORAGE_KEY = 'POKER_USER_NAME';
@@ -71,7 +81,8 @@ export class GameService {
                 this.players.set(roomData.players || []);
                 this.areCardsRevealed.set(roomData.areCardsRevealed);
                 if (user) {
-                    this.isHost.set(roomData.hostId === user.uid);
+                    const isUserHost = roomData.hostId === user.uid || (roomData.hostIds && roomData.hostIds.includes(user.uid));
+                    this.isHost.set(!!isUserHost);
                 }
             } else {
                 this.players.set([]);
@@ -347,6 +358,169 @@ export class GameService {
             areCardsRevealed: false,
             lastActiveAt: Date.now()
         });
+    }
+
+    async addMockPlayer(roomId: string, name: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const mockId = 'mock-' + Math.random().toString(36).substring(2, 9);
+            const player: Player = {
+                id: mockId,
+                name: name,
+                status: 'Waiting...',
+                vote: null
+            };
+            await updateDoc(roomRef, {
+                players: arrayUnion(player),
+                lastActiveAt: Date.now()
+            });
+            return mockId;
+        }
+        throw new Error('Room not found');
+    }
+
+    async removeMockPlayer(roomId: string, mockId: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedPlayers = roomData.players.filter(p => p.id !== mockId);
+            await updateDoc(roomRef, {
+                players: updatedPlayers,
+                lastActiveAt: Date.now()
+            });
+        }
+    }
+
+    async submitMockVote(roomId: string, mockId: string, vote: string | null) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedPlayers = roomData.players.map(p => {
+                if (p.id === mockId) {
+                    return { ...p, vote, status: vote ? 'Ready!' as const : 'Waiting...' as const };
+                }
+                return p;
+            });
+            await updateDoc(roomRef, {
+                players: updatedPlayers,
+                lastActiveAt: Date.now()
+            });
+        }
+    }
+
+    async promoteToHost(roomId: string, userId: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const currentHostIds = roomData.hostIds || [roomData.hostId];
+            if (!currentHostIds.includes(userId)) {
+                await updateDoc(roomRef, {
+                    hostIds: [...currentHostIds, userId],
+                    lastActiveAt: Date.now()
+                });
+            }
+        }
+    }
+
+    async setTimer(roomId: string, durationSeconds: number | null) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const timerEndsAt = durationSeconds ? Date.now() + durationSeconds * 1000 : null;
+        await updateDoc(roomRef, {
+            timerEndsAt,
+            lastActiveAt: Date.now()
+        });
+    }
+
+    async addTask(roomId: string, description: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const task: Task = {
+            id: Math.random().toString(36).substring(2, 9),
+            description,
+            createdAt: Date.now()
+        };
+        await updateDoc(roomRef, {
+            tasks: arrayUnion(task),
+            lastActiveAt: Date.now()
+        });
+    }
+
+    async deleteTask(roomId: string, taskId: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedTasks = (roomData.tasks || []).filter(t => t.id !== taskId);
+            await updateDoc(roomRef, {
+                tasks: updatedTasks,
+                lastActiveAt: Date.now()
+            });
+        }
+    }
+
+    async updateTaskEstimate(roomId: string, taskId: string, estimate: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedTasks = (roomData.tasks || []).map(t => {
+                if (t.id === taskId) {
+                    return { ...t, finalEstimate: estimate };
+                }
+                return t;
+            });
+            await updateDoc(roomRef, {
+                tasks: updatedTasks,
+                lastActiveAt: Date.now()
+            });
+        }
+    }
+
+    async estimateNewTask(roomId: string, storyDescription: string, finalEstimate: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            
+            let updatedTasks = roomData.tasks || [];
+            if (storyDescription) {
+                const existingIdx = updatedTasks.findIndex(t => t.description.trim() === storyDescription.trim());
+                if (existingIdx > -1) {
+                    updatedTasks = updatedTasks.map((t, idx) => {
+                        if (idx === existingIdx) {
+                            return { ...t, finalEstimate: finalEstimate || undefined };
+                        }
+                        return t;
+                    });
+                } else {
+                    const newTask: Task = {
+                        id: Math.random().toString(36).substring(2, 9),
+                        description: storyDescription,
+                        finalEstimate: finalEstimate || undefined,
+                        createdAt: Date.now()
+                    };
+                    updatedTasks = [...updatedTasks, newTask];
+                }
+            }
+
+            const updatedPlayers = roomData.players.map(p => ({
+                ...p,
+                vote: null,
+                status: 'Waiting...' as const
+            }));
+
+            await updateDoc(roomRef, {
+                tasks: updatedTasks,
+                currentStory: '',
+                players: updatedPlayers,
+                areCardsRevealed: false,
+                timerEndsAt: null,
+                lastActiveAt: Date.now()
+            });
+        }
     }
 
     private generateRoomId(): string {

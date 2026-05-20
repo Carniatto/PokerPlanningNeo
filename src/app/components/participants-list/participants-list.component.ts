@@ -26,7 +26,7 @@ import { IconComponent } from '../icon/icon.component';
           </div>
 
           <div class="player-info">
-             @if (editingUserId() === player.id) {
+              @if (editingUserId() === player.id) {
                <div class="edit-name-group">
                  <input type="text" 
                         [(ngModel)]="editNameValue" 
@@ -44,6 +44,13 @@ import { IconComponent } from '../icon/icon.component';
                     <span class="you-tag">(You)</span> 
                     <button class="btn-edit" (click)="enableEdit(player); $event.stopPropagation()" title="Edit Name">
                         <app-icon name="edit" size="small"></app-icon>
+                    </button>
+                  }
+                  @if (isPlayerHost(player.id)) {
+                    <span class="host-tag">Host</span>
+                  } @else if (isUserHost() && player.id !== currentUserId()) {
+                    <button class="btn-promote" (click)="promoteToHost(player.id); $event.stopPropagation()" title="Promote to Host">
+                      + Host
                     </button>
                   }
                </span>
@@ -83,6 +90,23 @@ export class ParticipantsListComponent {
 
   editingUserId = signal<string | null>(null);
   editNameValue = '';
+
+  isUserHost = this.gameService.isHost;
+
+  isPlayerHost(playerId: string): boolean {
+    const room = this.gameService.currentRoomData();
+    if (!room) return false;
+    return room.hostId === playerId || !!(room.hostIds && room.hostIds.includes(playerId));
+  }
+
+  async promoteToHost(playerId: string) {
+    const roomId = this.gameService.currentRoomId();
+    if (roomId) {
+      if (confirm(`Are you sure you want to promote this user to Host? They will share all host controls.`)) {
+        await this.gameService.promoteToHost(roomId, playerId);
+      }
+    }
+  }
 
   getInitials(name: string): string {
     return name ? name.substring(0, 2).toUpperCase() : '??';

@@ -1,14 +1,14 @@
 import { Component, input, output } from '@angular/core';
-
 import { FormsModule } from '@angular/forms';
+import { TimerComponent } from '../timer/timer.component';
 
 @Component({
     selector: 'app-room-header',
-    imports: [FormsModule],
+    imports: [FormsModule, TimerComponent],
     template: `
     <header class="content-header">
       <div class="title-section">
-        @if (isHost()) {
+        @if (isHost() && !title()) {
           <div class="editable-title-wrapper">
              <input class="editable-title" 
                    [ngModel]="roomName()" 
@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms';
               <span class="edit-icon">✎</span>
           </div>
         } @else {
-          <h1>{{ roomName() || 'Planning Session' }}</h1>
+          <h1>{{ title() || roomName() || 'Planning Session' }}</h1>
         }
         <div class="room-info">
           <span class="room-code">Room Code: <strong class="selectable-text">{{ roomId() }}</strong></span>
@@ -27,6 +27,7 @@ import { FormsModule } from '@angular/forms';
             <span class="link-icon">🔗</span>
             <span class="link-text">Copy Invite Link</span>
           </a>
+          <app-timer></app-timer>
         </div>
       </div>
       @if (isHost()) {
@@ -42,6 +43,7 @@ export class RoomHeaderComponent {
   roomId = input.required<string>();
   isHost = input<boolean>(false);
   roomName = input<string>(''); // Received from parent
+  title = input<string>(''); // Override title
 
   roomNameChange = output<string>(); // Emit changes to parent
   endSession = output<void>();

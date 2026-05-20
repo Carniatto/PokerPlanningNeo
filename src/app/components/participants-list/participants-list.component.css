@@ -306,3 +306,36 @@
     transform: scale(1.05);
     color: #86efac;
 }
+
+.host-tag {
+    font-size: 0.7rem;
+    background: linear-gradient(135deg, var(--neon-blue, #00f3ff), var(--neon-purple, #bc13fe));
+    color: white;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+    box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
+}
+
+.btn-promote {
+    background: rgba(188, 19, 254, 0.15);
+    border: 1px solid rgba(188, 19, 254, 0.3);
+    color: var(--neon-purple, #bc13fe);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 6px;
+    transition: all 0.2s;
+}
+
+.btn-promote:hover {
+    background: var(--neon-purple, #bc13fe);
+    color: white;
+    box-shadow: 0 0 10px rgba(188, 19, 254, 0.4);
+    transform: scale(1.05);
+}
