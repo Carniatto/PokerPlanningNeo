@@ -9,6 +9,7 @@ import { IconComponent } from '../icon/icon.component';
     <div class="vote-card" 
          [class.selected]="selected()"
          [class.small]="size() === 'small'"
+         [class]="getEstimateColorClass()"
          (click)="onSelect()">
         
         @if (value() === '☕') {
@@ -41,5 +42,14 @@ export class VotingCardComponent {
 
   onSelect() {
     this.select.emit(this.value());
+  }
+
+  getEstimateColorClass(): string {
+    const val = this.value();
+    if (['0', '1', '2', '3'].includes(val)) return 'size-small';
+    if (['5', '8'].includes(val)) return 'size-medium';
+    if (['13', '21'].includes(val)) return 'size-large';
+    if (val === '☕') return 'size-coffee';
+    return 'size-unknown';
   }
 }

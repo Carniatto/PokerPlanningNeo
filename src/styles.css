@@ -174,6 +174,43 @@ input::placeholder {
   box-shadow: none;
 }
 
+.btn-neo-secondary {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid var(--neon-purple);
+  color: var(--neon-purple);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (hover: hover) {
+  .btn-neo-secondary:hover {
+    background: var(--neon-purple);
+    color: white;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    transform: translateY(-2px);
+  }
+}
+
+.btn-neo-secondary:active {
+  transform: translateY(0);
+}
+
+.btn-neo-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(1);
+  transform: none;
+  box-shadow: none;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

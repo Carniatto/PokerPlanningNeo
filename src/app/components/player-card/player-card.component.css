@@ -102,3 +102,29 @@
         z-index: 10;
         transform: rotate(10deg);
     }
+
+    .revealed-value.vote-small {
+        background: linear-gradient(135deg, #00f3ff, #0072ff) !important;
+        box-shadow: 0 0 15px rgba(0, 243, 255, 0.5) !important;
+        border-color: #00f3ff !important;
+    }
+    .revealed-value.vote-medium {
+        background: linear-gradient(135deg, #10b981, #047857) !important;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.5) !important;
+        border-color: #10b981 !important;
+    }
+    .revealed-value.vote-large {
+        background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
+        border-color: #f59e0b !important;
+    }
+    .revealed-value.vote-coffee {
+        background: linear-gradient(135deg, #78350f, #451a03) !important;
+        box-shadow: 0 0 15px rgba(120, 53, 15, 0.5) !important;
+        border-color: #78350f !important;
+    }
+    .revealed-value.vote-unknown {
+        background: linear-gradient(135deg, #6b7280, #374151) !important;
+        box-shadow: 0 0 15px rgba(107, 114, 128, 0.5) !important;
+        border-color: #6b7280 !important;
+    }
