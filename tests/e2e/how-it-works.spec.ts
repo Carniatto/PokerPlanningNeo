@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('How It Works Flow', () => {
     test('should navigate through slides', async ({ page }) => {
         // 1. Direct Navigation to Module (bypass Home click to avoid interception issues)
-        await page.goto('http://localhost:4200/how-it-works');
+        await page.goto('/how-it-works');
         await expect(page).toHaveURL(/.*how-it-works/);
 
         // 3. Verify Slide 1 (The Goal)
@@ -18,6 +18,6 @@ test.describe('How It Works Flow', () => {
 
         // 5. Close
         await page.click('button.close-btn');
-        await expect(page.url()).toBe('http://localhost:4200/');
+        await expect(page.url()).toBe('http://localhost:4201/');
     });
 });

@@ -6,7 +6,7 @@ import { Player } from '../../game.service';
     selector: 'app-round-result',
     imports: [],
     template: `
-    <div class="round-result-card glass-panel-inset">
+    <div [class]="'round-result-card glass-panel-inset ' + stats().gapClass">
       @if (consensus()) {
           <div class="particles-container">
             <div class="particle p1"></div>
@@ -28,6 +28,10 @@ import { Player } from '../../game.service';
           <span class="value">{{ stats().average }}</span>
         </div>
         <div class="stat">
+          <span class="label">Spread</span>
+          <span class="value">{{ stats().spread }}</span>
+        </div>
+        <div class="stat">
           <span class="label">Min</span>
           <span class="value">{{ stats().min }}</span>
         </div>
@@ -45,7 +49,7 @@ import { Player } from '../../game.service';
     styles: [`
     .round-result-card {
       background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
-                  linear-gradient(135deg, #22d3ee 0%, #e879f9 100%) border-box;
+                  linear-gradient(135deg, #94a3b8 0%, #475569 100%) border-box;
       border: 2px solid transparent;
       border-radius: 16px;
       padding: 2rem;
@@ -54,9 +58,37 @@ import { Player } from '../../game.service';
       position: relative;
       overflow: hidden;
       backdrop-filter: blur(12px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .round-result-card.gap-none {
+      background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
+                  linear-gradient(135deg, #22d3ee 0%, #e879f9 100%) border-box;
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
-                  0 0 20px rgba(34, 211, 238, 0.2), /* Cyan glow */
-                  0 0 40px rgba(232, 121, 249, 0.1); /* Pink glow */
+                  0 0 20px rgba(34, 211, 238, 0.2),
+                  0 0 40px rgba(232, 121, 249, 0.1);
+    }
+
+    .round-result-card.gap-small {
+      background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
+                  linear-gradient(135deg, #10b981 0%, #059669 100%) border-box;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
+                  0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .round-result-card.gap-medium {
+      background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
+                  linear-gradient(135deg, #f59e0b 0%, #d97706 100%) border-box;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
+                  0 0 20px rgba(245, 158, 11, 0.2);
+    }
+
+    .round-result-card.gap-large {
+      background: linear-gradient(rgba(17, 34, 64, 0.95), rgba(17, 34, 64, 0.95)) padding-box,
+                  linear-gradient(135deg, #ef4444 0%, #dc2626 100%) border-box;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
+                  0 0 20px rgba(239, 68, 68, 0.3);
     }
 
     h3 {
@@ -208,19 +240,26 @@ export class RoundResultComponent {
       .filter(n => !isNaN(n));
 
     if (votes.length === 0) {
-      return { average: '-', min: '-', max: '-', consensus: '?' };
+      return { average: '-', min: '-', max: '-', spread: '-', consensus: '?', gapClass: 'gap-unknown' };
     }
 
     const sum = votes.reduce((a, b) => a + b, 0);
     const avg = (sum / votes.length).toFixed(1);
     const min = Math.min(...votes);
     const max = Math.max(...votes);
+    const spread = max - min;
+
+    let gapClass = 'gap-small';
+    if (spread === 0) gapClass = 'gap-none';
+    else if (spread <= 2) gapClass = 'gap-small';
+    else if (spread <= 5) gapClass = 'gap-medium';
+    else gapClass = 'gap-large';
 
     // Consensus: Only if all players (numeric votes) have the same value
     const allSame = votes.every(v => v === votes[0]);
     const consensus = allSame ? votes[0] : avg;
 
-    return { average: avg, min, max, consensus };
+    return { average: avg, min, max, spread, consensus, gapClass };
   });
 
   consensus = computed(() => {

@@ -27,7 +27,7 @@ import { Player } from '../../game.service';
 
         <!-- Revealed Vote Value -->
         @if (isRevealed() && player().vote) {
-          <div class="revealed-value">
+          <div class="revealed-value" [class]="'revealed-value ' + getVoteColorClass(player().vote)">
             {{ player().vote }}
           </div>
         }
@@ -43,4 +43,13 @@ import { Player } from '../../game.service';
 export class PlayerCardComponent {
   player = input.required<Player>();
   isRevealed = input(false);
+
+  getVoteColorClass(vote?: string | null): string {
+    if (!vote) return '';
+    if (['0', '1', '2', '3'].includes(vote)) return 'vote-small';
+    if (['5', '8'].includes(vote)) return 'vote-medium';
+    if (['13', '21'].includes(vote)) return 'vote-large';
+    if (vote === '☕') return 'vote-coffee';
+    return 'vote-unknown';
+  }
 }

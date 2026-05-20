@@ -16,7 +16,13 @@ import { ParticipantsListComponent } from '../participants-list/participants-lis
     <aside class="room-sidebar">
       <!-- Host Controls (Top) -->
       @if (isHost()) {
-        <app-host-controls (reveal)="reveal.emit()" (reset)="reset.emit()"></app-host-controls>
+        <app-host-controls 
+          [areCardsRevealed]="areCardsRevealed()" 
+          [hasVotes]="hasVotes()"
+          (reveal)="reveal.emit()" 
+          (replay)="replay.emit()"
+          (estimateNew)="estimateNew.emit()">
+        </app-host-controls>
       }
 
       <!-- Round Result (Middle - visible when cards revealed) -->
@@ -24,7 +30,7 @@ import { ParticipantsListComponent } from '../participants-list/participants-lis
         <app-round-result 
           [isHost]="isHost()" 
           [players]="players()" 
-          (nextRound)="reset.emit()">
+          (nextRound)="replay.emit()">
         </app-round-result>
       }
 
@@ -59,10 +65,12 @@ export class RoomSidebarComponent {
   players = input.required<Player[]>();
   isHost = input(false);
   areCardsRevealed = input(false);
+  hasVotes = input(false);
   currentUserId = input<string | undefined>(undefined);
 
   reveal = output<void>();
-  reset = output<void>();
+  replay = output<void>();
+  estimateNew = output<void>();
 
   // Collapsible Logic
   // Default to collapsed on mobile? Maybe start expanded or let user decide. 

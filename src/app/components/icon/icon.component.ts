@@ -41,6 +41,19 @@ import { Component, input } from '@angular/core';
               </g>
            </svg>
         }
+        @case ('plus') {
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <line x1="12" y1="5" x2="12" y2="19"></line>
+             <line x1="5" y1="12" x2="19" y2="12"></line>
+           </svg>
+        }
+        @case ('replay') {
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="23 4 23 10 17 10"></polyline>
+             <polyline points="1 20 1 14 7 14"></polyline>
+             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+           </svg>
+        }
       }
     </div>
   `,
@@ -75,7 +88,7 @@ import { Component, input } from '@angular/core';
   `]
 })
 export class IconComponent {
-  name = input.required<'edit' | 'check' | 'coffee' | 'vote-hidden'>();
+  name = input.required<'edit' | 'check' | 'coffee' | 'vote-hidden' | 'plus' | 'replay'>();
   size = input<'small' | 'medium' | 'large' | 'full'>('full');
 
   // Unique ID for gradients to prevent ID collisions
