@@ -33,131 +33,37 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
         <div class="dashboard-container host-theme">
           <!-- Main Content (Left) -->
           <main class="main-content">
-            <app-room-header [roomId]="roomId || ''" 
-                            [isHost]="true"
-                            [roomName]="currentRoomName()"
-                            [title]="areCardsRevealed() ? 'Revealed Results' : ''"
-                            (roomNameChange)="onRoomNameChange($event)"
-                            (nameBlur)="saveRoomName()"
-                            (endSession)="leaveRoom()" 
-                            (copyLink)="copyInviteLink()">
-            </app-room-header>
-
-            <app-task-description 
-                [isHost]="true"
-                [story]="currentStory()"
-                (storyChange)="onStoryChange($event)"
-                (storyBlur)="saveCurrentStory()">
-            </app-task-description>
-
-            @if (!areCardsRevealed()) {
-              <section class="deck-section">
-                  <h2>Your Deck</h2>
-                  <div class="voting-grid">
-                      @for (value of votingValues; track value) {
-                        <app-voting-card 
-                          [value]="value" 
-                          [selected]="selectedValue() === value"
-                          (select)="selectVote($event)">
-                        </app-voting-card>
-                      }
-                  </div>
-              </section>
-            } @else {
-              <!-- FINAL VOTES GRID -->
-              <section class="final-votes-section">
-                <div class="final-votes-header">
-                  <h2>Final Votes</h2>
-                  <span class="average-badge">Average: {{ averageVote() }}</span>
-                </div>
-                
-                <div class="grouped-cards-grid">
-                  @for (group of groupedVotes(); track group.vote) {
-                    <div class="final-vote-card-wrapper">
-                      <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
-                        <div class="vote-value-text">{{ group.vote || '-' }}</div>
-                      </div>
-                      <div class="avatar-stack">
-                        @for (player of group.players.slice(0, 4); track player.id) {
-                          <span class="stacked-avatar"
-                                [class.is-host]="isPlayerHost(player.id)"
-                                [class.is-current]="player.id === currentUser()?.uid"
-                                [attr.data-tooltip]="player.name">
-                            {{ getInitials(player.name) }}
-                          </span>
-                        }
-                        @if (group.players.length > 4) {
-                          <span class="overflow-count">+{{ group.players.length - 4 }}</span>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              </section>
-            }
-
-            <app-task-list
-              [roomId]="roomId || ''"
-              [isHost]="true"
-              [tasks]="currentRoomTasks()"
-              [currentStory]="currentStory()"
-              (selectTask)="selectTaskForEstimation($event)">
-            </app-task-list>
-
-            <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
-          </main>
-
-          <!-- Right Column: Host Sidebar (Direct child of flex container) -->
-          <app-room-sidebar 
-            [isHost]="true" 
-            [players]="sortedPlayers()" 
-            [areCardsRevealed]="areCardsRevealed()"
-            [hasVotes]="hasVotes()"
-            [currentUserId]="currentUser()?.uid"
-            (reveal)="revealVotes()"
-            (replay)="replayRound()"
-            (estimateNew)="estimateNewTask()">
-          </app-room-sidebar>
-        </div>
-      }
-
-      <!-- PLAYER VIEW -->
-      @if (!isHost()) {
-        <div class="player-layout">
-          <div class="player-content-wrapper">
-            <!-- Main Voting Area -->
-            <main class="voting-area">
+            <div class="main-content-inner">
               <app-room-header [roomId]="roomId || ''" 
-                              [isHost]="false"
+                              [isHost]="true"
                               [roomName]="currentRoomName()"
                               [title]="areCardsRevealed() ? 'Revealed Results' : ''"
+                              (roomNameChange)="onRoomNameChange($event)"
+                              (nameBlur)="saveRoomName()"
                               (endSession)="leaveRoom()" 
                               (copyLink)="copyInviteLink()">
               </app-room-header>
 
               <app-task-description 
-                  [isHost]="false"
-                  [story]="currentStory()">
+                  [isHost]="true"
+                  [story]="currentStory()"
+                  (storyChange)="onStoryChange($event)"
+                  (storyBlur)="saveCurrentStory()">
               </app-task-description>
 
-              <div class="task-header">
-                @if (areCardsRevealed()) {
-                  <p class="status-text">The votes are revealed!</p>
-                } @else {
-                  <p class="status-text">Select your estimate.</p>
-                }
-              </div>
-
               @if (!areCardsRevealed()) {
-                <div class="voting-grid">
-                  @for (value of votingValues; track value) {
-                    <app-voting-card 
-                                    [value]="value" 
-                                    [selected]="selectedValue() === value"
-                                    (select)="selectVote($event)">
-                    </app-voting-card>
-                  }
-                </div>
+                <section class="deck-section">
+                    <h2>Your Deck</h2>
+                    <div class="voting-grid">
+                        @for (value of votingValues; track value) {
+                          <app-voting-card 
+                            [value]="value" 
+                            [selected]="selectedValue() === value"
+                            (select)="selectVote($event)">
+                          </app-voting-card>
+                        }
+                    </div>
+                </section>
               } @else {
                 <!-- FINAL VOTES GRID -->
                 <section class="final-votes-section">
@@ -193,13 +99,111 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
 
               <app-task-list
                 [roomId]="roomId || ''"
-                [isHost]="false"
+                [isHost]="true"
                 [tasks]="currentRoomTasks()"
                 [currentStory]="currentStory()"
                 (selectTask)="selectTaskForEstimation($event)">
               </app-task-list>
 
               <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
+            </div>
+          </main>
+
+          <!-- Right Column: Host Sidebar (Direct child of flex container) -->
+          <app-room-sidebar 
+            [isHost]="true" 
+            [players]="sortedPlayers()" 
+            [areCardsRevealed]="areCardsRevealed()"
+            [hasVotes]="hasVotes()"
+            [currentUserId]="currentUser()?.uid"
+            (reveal)="revealVotes()"
+            (replay)="replayRound()"
+            (estimateNew)="estimateNewTask()">
+          </app-room-sidebar>
+        </div>
+      }
+
+      <!-- PLAYER VIEW -->
+      @if (!isHost()) {
+        <div class="player-layout">
+          <div class="player-content-wrapper">
+            <!-- Main Voting Area -->
+            <main class="voting-area">
+              <div class="main-content-inner">
+                <app-room-header [roomId]="roomId || ''" 
+                                [isHost]="false"
+                                [roomName]="currentRoomName()"
+                                [title]="areCardsRevealed() ? 'Revealed Results' : ''"
+                                (endSession)="leaveRoom()" 
+                                (copyLink)="copyInviteLink()">
+                </app-room-header>
+
+                <app-task-description 
+                    [isHost]="false"
+                    [story]="currentStory()">
+                </app-task-description>
+
+                <div class="task-header">
+                  @if (areCardsRevealed()) {
+                    <p class="status-text">The votes are revealed!</p>
+                  } @else {
+                    <p class="status-text">Select your estimate.</p>
+                  }
+                </div>
+
+                @if (!areCardsRevealed()) {
+                  <div class="voting-grid">
+                    @for (value of votingValues; track value) {
+                      <app-voting-card 
+                                      [value]="value" 
+                                      [selected]="selectedValue() === value"
+                                      (select)="selectVote($event)">
+                      </app-voting-card>
+                    }
+                  </div>
+                } @else {
+                  <!-- FINAL VOTES GRID -->
+                  <section class="final-votes-section">
+                    <div class="final-votes-header">
+                      <h2>Final Votes</h2>
+                      <span class="average-badge">Average: {{ averageVote() }}</span>
+                    </div>
+                    
+                    <div class="grouped-cards-grid">
+                      @for (group of groupedVotes(); track group.vote) {
+                        <div class="final-vote-card-wrapper">
+                          <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+                            <div class="vote-value-text">{{ group.vote || '-' }}</div>
+                          </div>
+                          <div class="avatar-stack">
+                            @for (player of group.players.slice(0, 4); track player.id) {
+                              <span class="stacked-avatar"
+                                    [class.is-host]="isPlayerHost(player.id)"
+                                    [class.is-current]="player.id === currentUser()?.uid"
+                                    [attr.data-tooltip]="player.name">
+                                {{ getInitials(player.name) }}
+                              </span>
+                            }
+                            @if (group.players.length > 4) {
+                              <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </section>
+                }
+
+                <app-task-list
+                  [roomId]="roomId || ''"
+                  [isHost]="false"
+                  [tasks]="currentRoomTasks()"
+                  [currentStory]="currentStory()"
+                  (selectTask)="selectTaskForEstimation($event)">
+                </app-task-list>
+
+                <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
+              </div>
             </main>
 
             <!-- Right Sidebar -->
@@ -363,6 +367,12 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       flex-direction: column;
       align-items: stretch;
     }
+    
+    .main-content-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
 
     .players-section, .deck-section {
       width: 100%;
@@ -432,6 +442,15 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       width: 100%;
       max-width: 100%;
       justify-content: start;
+    }
+
+    /* WFHD AND ULTRAWIDE OPTIMIZATIONS (2560px and up) */
+    @media (min-width: 2560px) {
+      .main-content { padding: 3rem 5rem; }
+      .voting-area { padding: 4rem 5rem; }
+      .main-content-inner { max-width: 1800px; }
+      .voting-grid, .final-votes-section { max-width: 1800px; }
+      .final-votes-header h2, .deck-section h2 { font-size: 1.8rem; }
     }
 
 
@@ -583,6 +602,10 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       }
       
       .main-content {
+          display: contents;
+      }
+      
+      .main-content-inner {
           display: contents;
       }
       
