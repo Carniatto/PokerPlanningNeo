@@ -1,4 +1,4 @@
-import { Component, input, output, signal, inject, computed, OnInit } from '@angular/core';
+import { Component, input, output, signal, inject, computed, OnInit, effect } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { JiraAuthService } from '../../services/jira-auth.service';
@@ -197,6 +197,16 @@ export class TaskListComponent implements OnInit {
   showJiraSettings = signal(false);
   isSyncingAll = signal(false);
 
+  constructor() {
+    effect(() => {
+        const sites = this.jiraSites();
+        const current = this.selectedJiraSite();
+        if (sites.length > 0 && !current) {
+            this.updateJiraSite(sites[0].id);
+        }
+    });
+  }
+
   ngOnInit() {
     if (this.isHost() && this.jiraAuth.accessToken()) {
         this.loadJiraSites();
@@ -207,9 +217,6 @@ export class TaskListComponent implements OnInit {
     this.jiraApi.getAccessibleResources().subscribe({
         next: (data) => {
             this.jiraSites.set(data);
-            if (data.length > 0 && !this.selectedJiraSite()) {
-                this.updateJiraSite(data[0].id);
-            }
         },
         error: (err) => console.error('Failed to load Jira sites', err)
     });
@@ -292,7 +299,7 @@ export class TaskListComponent implements OnInit {
         }
     }
     
-    if (jiraKey && this.jiraAuth.accessToken()) {
+    if (jiraKey) {
         const loadingId = Math.random().toString(36).substring(7);
         let cloudId = this.selectedJiraSite();
         if (desc.includes('.atlassian.net')) {
@@ -304,23 +311,34 @@ export class TaskListComponent implements OnInit {
             }
         }
         
-        const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || 'domain.atlassian.net'}/browse/${jiraKey}`;
-        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
-        this.newTaskDescription.set('');
+        const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
+        const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
+        
+        jiraMeta = {
+            jiraKey,
+            jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
+            jiraUrl
+        };
+        
+        if (this.jiraAuth.accessToken()) {
+            this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
+            this.newTaskDescription.set('');
 
-        try {
-            if (cloudId) {
-               const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
-               jiraMeta = {
-                   jiraKey: issue.key,
-                   jiraSummary: issue.fields?.summary || 'No summary',
-                   jiraUrl
-               };
+            try {
+                if (cloudId) {
+                   const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
+                   jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
+                }
+            } catch(e: any) {
+                console.error('Failed to auto-fetch Jira details', e);
+                if (e?.status === 401) {
+                    alert('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
+                }
+            } finally {
+                this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
             }
-        } catch(e) {
-            console.error('Failed to auto-fetch Jira details', e);
-        } finally {
-            this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
+        } else {
+            this.newTaskDescription.set('');
         }
     } else {
         this.newTaskDescription.set('');
