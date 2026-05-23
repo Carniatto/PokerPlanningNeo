@@ -1,8 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanEmptyRooms = exports.cleanZombieRoomsManual = exports.cleanZombieRooms = void 0;
+exports.jiraApiProxy = exports.exchangeToken = exports.cleanEmptyRooms = exports.cleanZombieRoomsManual = exports.cleanZombieRooms = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const corsLib = require("cors");
+const params_1 = require("firebase-functions/params");
+const cors = corsLib({ origin: true });
+const JIRA_CLIENT_SECRET = (0, params_1.defineSecret)("JIRA_CLIENT_SECRET");
 admin.initializeApp();
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -94,5 +98,87 @@ exports.cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").onUpdat
         await change.after.ref.delete();
     }
     return null;
+});
+// ============================================================================
+// Jira Integration Endpoints
+// ============================================================================
+exports.exchangeToken = functions.runWith({ secrets: [JIRA_CLIENT_SECRET] }).https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
+        }
+        const { code, clientId, redirectUri } = req.body;
+        if (!code || !clientId || !redirectUri) {
+            res.status(400).send('Missing required parameters');
+            return;
+        }
+        try {
+            const secretValue = JIRA_CLIENT_SECRET.value();
+            const response = await fetch('https://auth.atlassian.com/oauth/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    grant_type: 'authorization_code',
+                    client_id: clientId,
+                    client_secret: secretValue,
+                    code: code,
+                    redirect_uri: redirectUri
+                })
+            });
+            if (!response.ok) {
+                const err = await response.text();
+                console.error('Error exchanging token:', err);
+                res.status(response.status).send(err);
+                return;
+            }
+            const data = await response.json();
+            res.status(200).json(data);
+        }
+        catch (error) {
+            console.error('Internal Error in exchangeToken:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    });
+});
+exports.jiraApiProxy = functions.https.onRequest((req, res) => {
+    cors(req, res, async () => {
+        // Only allow specific methods if necessary, or pass through everything
+        const authHeader = req.header('Authorization');
+        if (!authHeader) {
+            res.status(401).send('Missing Authorization header');
+            return;
+        }
+        const targetUrl = req.header('X-Target-Url');
+        if (!targetUrl || !targetUrl.startsWith('https://api.atlassian.com/')) {
+            res.status(400).send('Invalid or missing X-Target-Url header');
+            return;
+        }
+        try {
+            // Forward the request to Jira
+            const fetchOptions = {
+                method: req.method,
+                headers: {
+                    'Authorization': authHeader,
+                    'Accept': req.header('Accept') || 'application/json',
+                    'Content-Type': req.header('Content-Type') || 'application/json'
+                }
+            };
+            // Only attach body if method is not GET/HEAD
+            if (req.method !== 'GET' && req.method !== 'HEAD' && req.rawBody) {
+                fetchOptions.body = req.rawBody;
+            }
+            const response = await fetch(targetUrl, fetchOptions);
+            const data = await response.text();
+            // Forward the status and headers back to the client
+            res.status(response.status).send(data);
+        }
+        catch (error) {
+            console.error('Error proxying request to Jira:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    });
 });
 //# sourceMappingURL=index.js.map

@@ -1459,7 +1459,7 @@ export class RoomComponent implements OnInit, OnDestroy {
         }
         // If isAutoJoining() is true and !me, we STAY LOADING (waiting for write to reflect).
       }
-    }, { allowSignalWrites: true });
+    });
   }
 
   ngOnInit() {
