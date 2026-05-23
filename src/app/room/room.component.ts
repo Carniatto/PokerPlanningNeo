@@ -56,59 +56,65 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                   (storyBlur)="saveCurrentStory()">
               </app-task-description>
 
-              @if (!areCardsRevealed()) {
-                <section class="deck-section">
-                    <h2>Your Deck</h2>
-                    <div class="voting-grid">
-                        @for (value of votingValues; track value) {
-                          <app-voting-card 
-                            [value]="value" 
-                            [selected]="selectedValue() === value"
-                            (select)="selectVote($event)">
-                          </app-voting-card>
-                        }
-                    </div>
-                </section>
-              } @else {
-                <!-- FINAL VOTES GRID -->
-                <section class="final-votes-section">
-                  <div class="final-votes-header">
-                    <h2>Final Votes</h2>
-                  </div>
-                  
-                  <div class="grouped-cards-grid">
-                    @for (group of groupedVotes(); track group.vote) {
-                      <div class="final-vote-card-wrapper">
-                        <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
-                          <div class="vote-value-text">{{ group.vote || '-' }}</div>
+              <div class="voting-and-tasks-container">
+                <div class="voting-cards-column">
+                  @if (!areCardsRevealed()) {
+                    <section class="deck-section">
+                        <h2>Your Deck</h2>
+                        <div class="voting-grid">
+                            @for (value of votingValues; track value) {
+                              <app-voting-card 
+                                [value]="value" 
+                                [selected]="selectedValue() === value"
+                                (select)="selectVote($event)">
+                              </app-voting-card>
+                            }
                         </div>
-                        <div class="avatar-stack">
-                          @for (player of group.players.slice(0, 4); track player.id) {
-                            <span class="stacked-avatar"
-                                  [class.is-host]="isPlayerHost(player.id)"
-                                  [class.is-current]="player.id === currentUser()?.uid"
-                                  [attr.data-tooltip]="player.name">
-                              {{ getInitials(player.name) }}
-                            </span>
-                          }
-                          @if (group.players.length > 4) {
-                            <span class="overflow-count">+{{ group.players.length - 4 }}</span>
-                          }
-                        </div>
+                    </section>
+                  } @else {
+                    <!-- FINAL VOTES GRID -->
+                    <section class="final-votes-section">
+                      <div class="final-votes-header">
+                        <h2>Final Votes</h2>
                       </div>
-                    }
-                  </div>
-                </section>
-              }
+                      
+                      <div class="grouped-cards-grid">
+                        @for (group of groupedVotes(); track group.vote) {
+                          <div class="final-vote-card-wrapper">
+                            <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+                              <div class="vote-value-text">{{ group.vote || '-' }}</div>
+                            </div>
+                            <div class="avatar-stack">
+                              @for (player of group.players.slice(0, 4); track player.id) {
+                                <span class="stacked-avatar"
+                                      [class.is-host]="isPlayerHost(player.id)"
+                                      [class.is-current]="player.id === currentUser()?.uid"
+                                      [attr.data-tooltip]="player.name">
+                                  {{ getInitials(player.name) }}
+                                </span>
+                              }
+                              @if (group.players.length > 4) {
+                                <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </section>
+                  }
+                </div>
 
-              <app-task-list
-                [roomId]="roomId || ''"
-                [isHost]="true"
-                [tasks]="currentRoomTasks()"
-                [currentStory]="currentStory()"
-                [currentTaskId]="currentTaskId()"
-                (selectTask)="selectTaskForEstimation($event)">
-              </app-task-list>
+                <div class="tasks-column">
+                  <app-task-list
+                    [roomId]="roomId || ''"
+                    [isHost]="true"
+                    [tasks]="currentRoomTasks()"
+                    [currentStory]="currentStory()"
+                    [currentTaskId]="currentTaskId()"
+                    (selectTask)="selectTaskForEstimation($event)">
+                  </app-task-list>
+                </div>
+              </div>
 
               <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
             </div>
@@ -157,65 +163,71 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                     [isFromList]="isCurrentStoryFromList()">
                 </app-task-description>
 
-                <div class="task-header">
-                  @if (areCardsRevealed()) {
-                    <p class="status-text">The votes are revealed!</p>
-                  } @else {
-                    <p class="status-text">Select your estimate.</p>
-                  }
-                </div>
-
-                @if (!areCardsRevealed()) {
-                  <div class="voting-grid">
-                    @for (value of votingValues; track value) {
-                      <app-voting-card 
-                                      [value]="value" 
-                                      [selected]="selectedValue() === value"
-                                      (select)="selectVote($event)">
-                      </app-voting-card>
-                    }
-                  </div>
-                } @else {
-                  <!-- FINAL VOTES GRID -->
-                  <section class="final-votes-section">
-                    <div class="final-votes-header">
-                      <h2>Final Votes</h2>
-                      <span class="average-badge">Average: {{ averageVote() }}</span>
-                    </div>
-                    
-                    <div class="grouped-cards-grid">
-                      @for (group of groupedVotes(); track group.vote) {
-                        <div class="final-vote-card-wrapper">
-                          <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
-                            <div class="vote-value-text">{{ group.vote || '-' }}</div>
-                          </div>
-                          <div class="avatar-stack">
-                            @for (player of group.players.slice(0, 4); track player.id) {
-                              <span class="stacked-avatar"
-                                    [class.is-host]="isPlayerHost(player.id)"
-                                    [class.is-current]="player.id === currentUser()?.uid"
-                                    [attr.data-tooltip]="player.name">
-                                {{ getInitials(player.name) }}
-                              </span>
-                            }
-                            @if (group.players.length > 4) {
-                              <span class="overflow-count">+{{ group.players.length - 4 }}</span>
-                            }
-                          </div>
-                        </div>
+                <div class="voting-and-tasks-container">
+                  <div class="voting-cards-column">
+                    <div class="task-header">
+                      @if (areCardsRevealed()) {
+                        <p class="status-text">The votes are revealed!</p>
+                      } @else {
+                        <p class="status-text">Select your estimate.</p>
                       }
                     </div>
-                  </section>
-                }
 
-                <app-task-list
-                  [roomId]="roomId || ''"
-                  [isHost]="false"
-                  [tasks]="currentRoomTasks()"
-                  [currentStory]="currentStory()"
-                  [currentTaskId]="currentTaskId()"
-                  (selectTask)="selectTaskForEstimation($event)">
-                </app-task-list>
+                    @if (!areCardsRevealed()) {
+                      <div class="voting-grid">
+                        @for (value of votingValues; track value) {
+                          <app-voting-card 
+                                          [value]="value" 
+                                          [selected]="selectedValue() === value"
+                                          (select)="selectVote($event)">
+                          </app-voting-card>
+                        }
+                      </div>
+                    } @else {
+                      <!-- FINAL VOTES GRID -->
+                      <section class="final-votes-section">
+                        <div class="final-votes-header">
+                          <h2>Final Votes</h2>
+                          <span class="average-badge">Average: {{ averageVote() }}</span>
+                        </div>
+                        
+                        <div class="grouped-cards-grid">
+                          @for (group of groupedVotes(); track group.vote) {
+                            <div class="final-vote-card-wrapper">
+                              <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+                                <div class="vote-value-text">{{ group.vote || '-' }}</div>
+                              </div>
+                              <div class="avatar-stack">
+                                @for (player of group.players.slice(0, 4); track player.id) {
+                                  <span class="stacked-avatar"
+                                        [class.is-host]="isPlayerHost(player.id)"
+                                        [class.is-current]="player.id === currentUser()?.uid"
+                                        [attr.data-tooltip]="player.name">
+                                    {{ getInitials(player.name) }}
+                                  </span>
+                                }
+                                @if (group.players.length > 4) {
+                                  <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </section>
+                    }
+                  </div>
+
+                  <div class="tasks-column">
+                    <app-task-list
+                      [roomId]="roomId || ''"
+                      [isHost]="false"
+                      [tasks]="currentRoomTasks()"
+                      [currentStory]="currentStory()"
+                      [currentTaskId]="currentTaskId()"
+                      (selectTask)="selectTaskForEstimation($event)">
+                    </app-task-list>
+                  </div>
+                </div>
 
                 <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
               </div>
@@ -460,6 +472,21 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       justify-content: start;
     }
 
+    .voting-and-tasks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      width: 100%;
+    }
+
+    .voting-cards-column {
+      width: 100%;
+    }
+
+    .tasks-column {
+      width: 100%;
+    }
+
     /* WFHD AND ULTRAWIDE OPTIMIZATIONS (2560px and up) */
     @media (min-width: 2560px) {
       .main-content { padding: 3rem 5rem; }
@@ -467,6 +494,13 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       .main-content-inner { max-width: 1800px; }
       .voting-grid, .final-votes-section { max-width: 1800px; }
       .final-votes-header h2, .deck-section h2 { font-size: 1.8rem; }
+
+      .voting-and-tasks-container {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 3rem;
+        align-items: start;
+      }
     }
 
 
@@ -641,15 +675,8 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
           order: 40;
       } 
       
-      .deck-section { order: 50; } 
-      
-      /* Player View Specifics */
-      .task-header { order: 35; } 
-      .voting-grid { 
-          order: 40; 
-          /* flex: 1; Removed to prevent nested scrolling */
-          /* overflow-y: auto; Removed - let parent scroll */
-          /* min-height: 0; Removed */
+      .voting-and-tasks-container {
+          order: 50;
       }
 
       /* Adjustments for Mobile - Compact Density */
