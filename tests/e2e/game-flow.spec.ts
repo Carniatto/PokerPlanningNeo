@@ -52,8 +52,9 @@ test.describe('3-User Game Flow', () => {
         await bobPage.locator('.voting-grid').waitFor({ timeout: 10000 });
         await bobPage.locator('app-voting-card:has-text("8")').click();
 
-        // Wait for votes to register on host (at least one participant shows as has-voted)
-        await hostPage.locator('.participants-container .has-voted').waitFor({ timeout: 10000 });
+        // Wait for votes to register on host (both participants show as has-voted)
+        await hostPage.locator('.participant-row:has-text("Alice").has-voted').waitFor({ timeout: 10000 });
+        await hostPage.locator('.participant-row:has-text("Bob").has-voted').waitFor({ timeout: 10000 });
 
         // 6. Host Reveals
         const revealBtn = hostPage.locator('button:has-text("REVEAL VOTES")');
@@ -64,8 +65,11 @@ test.describe('3-User Game Flow', () => {
         await expect(hostPage.locator('.vote-value-text:has-text("5")')).toBeVisible({ timeout: 10000 });
         await expect(hostPage.locator('.vote-value-text:has-text("8")')).toBeVisible({ timeout: 5000 });
 
-        // Check for average badge
-        await expect(hostPage.locator('.average-badge')).toBeVisible();
-        await expect(hostPage.locator('.average-badge')).toContainText('Average: 6.5');
+        // Check for average in Host's sidebar stats
+        await expect(hostPage.locator('.stat:has-text("Avg") .value')).toContainText('6.5');
+
+        // Check for average badge on Player page (Alice)
+        await expect(alicePage.locator('.average-badge')).toBeVisible();
+        await expect(alicePage.locator('.average-badge')).toContainText('Average: 6.5');
     });
 });

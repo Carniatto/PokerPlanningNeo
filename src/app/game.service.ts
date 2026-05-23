@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, effect } from '@angular/core';
-import { Firestore, doc, docData, setDoc, updateDoc, arrayUnion, arrayRemove, deleteField, getDoc } from '@angular/fire/firestore';
+import { Firestore, doc, docData, setDoc, updateDoc, arrayUnion, arrayRemove, deleteField, getDoc, runTransaction } from '@angular/fire/firestore';
 import { Auth, signInAnonymously, user, User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { Observable, Subscription, of } from 'rxjs';
@@ -182,58 +182,63 @@ export class GameService {
 
         // Add or Update player in the room
         if (userName) {
-            // We need to fetch the latest state to check duplications
-            const roomSnap = await getDoc(roomRef);
-            if (roomSnap.exists()) {
-                const roomData = roomSnap.data() as Room;
-                const existingPlayer = roomData.players.find(p => p.id === user!.uid);
+            try {
+                await runTransaction(this.firestore, async (transaction) => {
+                    const roomSnap = await transaction.get(roomRef);
+                    if (roomSnap.exists()) {
+                        const roomData = roomSnap.data() as Room;
+                        const existingPlayer = roomData.players.find(p => p.id === user!.uid);
+                        let updatedPlayers: Player[];
 
-                if (existingPlayer) {
-                    // Update existing player (Name, Active Status)
-                    const updatedPlayers = roomData.players.map(p => {
-                        if (p.id === user!.uid) {
-                            return { ...p, name: userName, status: 'Waiting...' as const };
+                        if (existingPlayer) {
+                            updatedPlayers = roomData.players.map(p => {
+                                if (p.id === user!.uid) {
+                                    return { ...p, name: userName, status: 'Waiting...' as const };
+                                }
+                                return p;
+                            });
+                        } else {
+                            const newPlayer: Player = {
+                                id: user!.uid,
+                                name: userName,
+                                status: 'Waiting...',
+                                vote: null
+                            };
+                            updatedPlayers = [...roomData.players, newPlayer];
                         }
-                        return p;
-                    });
-                    await updateDoc(roomRef, {
-                        players: updatedPlayers,
-                        lastActiveAt: Date.now()
-                    });
-                } else {
-                    // Add new player
-                    const player: Player = {
-                        id: user.uid,
-                        name: userName,
-                        status: 'Waiting...',
-                        vote: null
-                    };
-                    await updateDoc(roomRef, {
-                        players: arrayUnion(player),
-                        lastActiveAt: Date.now()
-                    });
-                }
+
+                        transaction.update(roomRef, {
+                            players: updatedPlayers,
+                            lastActiveAt: Date.now()
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Transaction failed in joinRoom:', error);
             }
         }
     }
 
     async leaveRoom(roomId: string, userId: string) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            const updatedPlayers = roomData.players.filter(p => p.id !== userId);
-
-            await updateDoc(roomRef, {
-                players: updatedPlayers,
-                lastActiveAt: Date.now()
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.filter(p => p.id !== userId);
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
+                }
             });
-
             // Clear local state
             this.currentRoomId.set(null);
             this.currentRoomData.set(null);
             this.roomSubscription?.unsubscribe();
+        } catch (error) {
+            console.error('Transaction failed in leaveRoom:', error);
         }
     }
 
@@ -245,42 +250,50 @@ export class GameService {
 
     async setPlayerStatus(roomId: string, userId: string, status: Player['status']) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            const updatedPlayers = roomData.players.map(p => {
-                if (p.id === userId) {
-                    return { ...p, status };
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.map(p => {
+                        if (p.id === userId) {
+                            return { ...p, status };
+                        }
+                        return p;
+                    });
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
                 }
-                return p;
             });
-
-            await updateDoc(roomRef, {
-                players: updatedPlayers,
-                lastActiveAt: Date.now()
-            });
+        } catch (error) {
+            console.error('Transaction failed in setPlayerStatus:', error);
         }
     }
 
     async updatePlayerName(roomId: string, userId: string, newName: string) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            const updatedPlayers = roomData.players.map(p => {
-                if (p.id === userId) {
-                    return { ...p, name: newName };
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.map(p => {
+                        if (p.id === userId) {
+                            return { ...p, name: newName };
+                        }
+                        return p;
+                    });
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
                 }
-                return p;
-            });
-
-            await updateDoc(roomRef, {
-                players: updatedPlayers,
-                lastActiveAt: Date.now()
             });
             localStorage.setItem(STORAGE_KEY, newName);
+        } catch (error) {
+            console.error('Transaction failed in updatePlayerName:', error);
         }
     }
 
@@ -321,22 +334,31 @@ export class GameService {
     async vote(voteValue: string) {
         const roomId = this.currentRoomId();
         const user = this.currentUser();
-        const roomData = this.currentRoomData();
 
-        if (!roomId || !user || !roomData) return;
-
-        const updatedPlayers = roomData.players.map(p => {
-            if (p.id === user.uid) {
-                return { ...p, vote: voteValue, status: 'Voted' as const };
-            }
-            return p;
-        });
+        if (!roomId || !user) return;
 
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
-            players: updatedPlayers,
-            lastActiveAt: Date.now()
-        });
+
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.map(p => {
+                        if (p.id === user.uid) {
+                            return { ...p, vote: voteValue, status: 'Voted' as const };
+                        }
+                        return p;
+                    });
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Transaction failed in vote:', error);
+        }
     }
 
     async revealCards(reveal: boolean) {
@@ -351,71 +373,103 @@ export class GameService {
 
     async resetVotes() {
         const roomId = this.currentRoomId();
-        const roomData = this.currentRoomData();
-        if (!roomId || !roomData) return;
-
-        const updatedPlayers = roomData.players.map(p => ({
-            ...p,
-            vote: null,
-            status: 'Waiting...' as const
-        }));
+        if (!roomId) return;
 
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
-            players: updatedPlayers,
-            areCardsRevealed: false,
-            lastActiveAt: Date.now()
-        });
+
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.map(p => ({
+                        ...p,
+                        vote: null,
+                        status: 'Waiting...' as const
+                    }));
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        areCardsRevealed: false,
+                        lastActiveAt: Date.now()
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Transaction failed in resetVotes:', error);
+        }
     }
 
     async addMockPlayer(roomId: string, name: string) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-        if (roomSnap.exists()) {
-            const mockId = 'mock-' + Math.random().toString(36).substring(2, 9);
-            const player: Player = {
-                id: mockId,
-                name: name,
-                status: 'Waiting...',
-                vote: null
-            };
-            await updateDoc(roomRef, {
-                players: arrayUnion(player),
-                lastActiveAt: Date.now()
+        try {
+            let mockId = '';
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    mockId = 'mock-' + Math.random().toString(36).substring(2, 9);
+                    const player: Player = {
+                        id: mockId,
+                        name: name,
+                        status: 'Waiting...',
+                        vote: null
+                    };
+                    const updatedPlayers = [...(roomData.players || []), player];
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
+                } else {
+                    throw new Error('Room not found');
+                }
             });
             return mockId;
+        } catch (error) {
+            console.error('Transaction failed in addMockPlayer:', error);
+            throw error;
         }
-        throw new Error('Room not found');
     }
 
     async removeMockPlayer(roomId: string, mockId: string) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            const updatedPlayers = roomData.players.filter(p => p.id !== mockId);
-            await updateDoc(roomRef, {
-                players: updatedPlayers,
-                lastActiveAt: Date.now()
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.filter(p => p.id !== mockId);
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
+                }
             });
+        } catch (error) {
+            console.error('Transaction failed in removeMockPlayer:', error);
         }
     }
 
     async submitMockVote(roomId: string, mockId: string, vote: string | null) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            const updatedPlayers = roomData.players.map(p => {
-                if (p.id === mockId) {
-                    return { ...p, vote, status: vote ? 'Ready!' as const : 'Waiting...' as const };
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    const updatedPlayers = roomData.players.map(p => {
+                        if (p.id === mockId) {
+                            return { ...p, vote, status: vote ? 'Ready!' as const : 'Waiting...' as const };
+                        }
+                        return p;
+                    });
+                    transaction.update(roomRef, {
+                        players: updatedPlayers,
+                        lastActiveAt: Date.now()
+                    });
                 }
-                return p;
             });
-            await updateDoc(roomRef, {
-                players: updatedPlayers,
-                lastActiveAt: Date.now()
-            });
+        } catch (error) {
+            console.error('Transaction failed in submitMockVote:', error);
         }
     }
 
@@ -543,55 +597,61 @@ export class GameService {
 
     async estimateNewTask(roomId: string, storyDescription: string, finalEstimate: string, taskId?: string | null) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
-        if (roomSnap.exists()) {
-            const roomData = roomSnap.data() as Room;
-            
-            let updatedTasks = roomData.tasks || [];
-            if (storyDescription) {
-                // Find by ID first if taskId is provided
-                let existingIdx = -1;
-                if (taskId) {
-                    existingIdx = updatedTasks.findIndex(t => t.id === taskId);
-                }
-                // Fallback to description lookup only if ID lookup failed
-                if (existingIdx === -1) {
-                    existingIdx = updatedTasks.findIndex(t => t.description.trim() === storyDescription.trim());
-                }
-
-                if (existingIdx > -1) {
-                    updatedTasks = updatedTasks.map((t, idx) => {
-                        if (idx === existingIdx) {
-                            return { ...t, finalEstimate: finalEstimate || undefined };
+        try {
+            await runTransaction(this.firestore, async (transaction) => {
+                const roomSnap = await transaction.get(roomRef);
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.data() as Room;
+                    
+                    let updatedTasks = roomData.tasks || [];
+                    if (storyDescription) {
+                        // Find by ID first if taskId is provided
+                        let existingIdx = -1;
+                        if (taskId) {
+                            existingIdx = updatedTasks.findIndex(t => t.id === taskId);
                         }
-                        return t;
+                        // Fallback to description lookup only if ID lookup failed
+                        if (existingIdx === -1) {
+                            existingIdx = updatedTasks.findIndex(t => t.description.trim() === storyDescription.trim());
+                        }
+
+                        if (existingIdx > -1) {
+                            updatedTasks = updatedTasks.map((t, idx) => {
+                                if (idx === existingIdx) {
+                                    return { ...t, finalEstimate: finalEstimate || undefined };
+                                }
+                                return t;
+                            });
+                        } else {
+                            const newTask: Task = {
+                                id: taskId || Math.random().toString(36).substring(2, 9),
+                                description: storyDescription,
+                                finalEstimate: finalEstimate || undefined,
+                                createdAt: Date.now()
+                            };
+                            updatedTasks = [...updatedTasks, newTask];
+                        }
+                    }
+
+                    const updatedPlayers = roomData.players.map(p => ({
+                        ...p,
+                        vote: null,
+                        status: 'Waiting...' as const
+                    }));
+
+                    transaction.update(roomRef, {
+                        tasks: updatedTasks,
+                        currentStory: '',
+                        currentTaskId: null,
+                        players: updatedPlayers,
+                        areCardsRevealed: false,
+                        timerEndsAt: null,
+                        lastActiveAt: Date.now()
                     });
-                } else {
-                    const newTask: Task = {
-                        id: taskId || Math.random().toString(36).substring(2, 9),
-                        description: storyDescription,
-                        finalEstimate: finalEstimate || undefined,
-                        createdAt: Date.now()
-                    };
-                    updatedTasks = [...updatedTasks, newTask];
                 }
-            }
-
-            const updatedPlayers = roomData.players.map(p => ({
-                ...p,
-                vote: null,
-                status: 'Waiting...' as const
-            }));
-
-            await updateDoc(roomRef, {
-                tasks: updatedTasks,
-                currentStory: '',
-                currentTaskId: null,
-                players: updatedPlayers,
-                areCardsRevealed: false,
-                timerEndsAt: null,
-                lastActiveAt: Date.now()
             });
+        } catch (error) {
+            console.error('Transaction failed in estimateNewTask:', error);
         }
     }
 
