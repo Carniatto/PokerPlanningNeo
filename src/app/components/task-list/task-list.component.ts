@@ -76,19 +76,16 @@ import { firstValueFrom } from 'rxjs';
             </thead>
             <tbody>
               @for (task of tasks(); track task.id) {
-                <tr [class.active]="isActive(task)">
+                <tr [class.active]="isActive(task)" 
+                    (click)="isHost() && !isActive(task) ? selectForEstimation(task) : null" 
+                    [class.clickable]="isHost() && !isActive(task)">
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
-                            <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge">
+                            <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
                                 {{ task.jiraKey }}
                             </a>
                             <span class="jira-summary" [title]="task.jiraSummary">{{ task.jiraSummary }}</span>
-                            @if (isHost() && jiraAuth.accessToken()) {
-                                <button class="btn-icon-refresh" title="Refresh from Jira" (click)="refreshJiraSummary(task)">
-                                    ↻
-                                </button>
-                            }
                         </div>
                     } @else {
                         <span [innerHTML]="getParsedDescription(task.description)"></span>
@@ -101,6 +98,7 @@ import { firstValueFrom } from 'rxjs';
                         type="text"
                         [ngModel]="task.finalEstimate || ''" 
                         (ngModelChange)="updateEstimate(task.id, $event)"
+                        (click)="$event.stopPropagation()"
                         class="estimate-input"
                         [class]="getEstimateColorClass(task.finalEstimate || '')"
                         placeholder="-"
@@ -115,29 +113,17 @@ import { firstValueFrom } from 'rxjs';
                   @if (isHost()) {
                     <td class="col-actions">
                       <div class="actions-group">
-                        @if (task.jiraKey) {
-                            <button 
-                              (click)="syncIndividualTask(task)"
-                              class="btn-action btn-sync"
-                              title="Sync Story Points to Jira"
-                              [disabled]="isInvalidSyncEstimate(task.finalEstimate)"
-                            >
-                              @if (task.jiraSyncStatus === 'pending') { ☁️ Sync }
-                              @else if (task.jiraSyncStatus === 'synced') { ✅ Synced }
-                              @else if (task.jiraSyncStatus === 'failed') { ⚠️ Error }
-                              @else { ☁️ Sync }
-                            </button>
+                        @if (task.jiraKey && jiraAuth.accessToken()) {
+                          <button 
+                            class="btn-action btn-refresh" 
+                            title="Refresh from Jira" 
+                            (click)="refreshJiraSummary(task); $event.stopPropagation()"
+                          >
+                            ↻
+                          </button>
                         }
                         <button 
-                          (click)="selectForEstimation(task)" 
-                          class="btn-action btn-estimate"
-                          title="Set as Active Task"
-                          [disabled]="isActive(task)"
-                        >
-                          Estimate
-                        </button>
-                        <button 
-                          (click)="deleteTask(task.id)" 
+                          (click)="deleteTask(task.id); $event.stopPropagation()" 
                           class="btn-action btn-delete"
                           title="Remove Task"
                         >
@@ -230,9 +216,6 @@ export class TaskListComponent implements OnInit {
   }
 
 
-
-  private gameService = inject(GameService);
-  private sanitizer = inject(DomSanitizer);
 
   isActive(task: Task): boolean {
     return this.currentStory().trim() === task.description.trim();
