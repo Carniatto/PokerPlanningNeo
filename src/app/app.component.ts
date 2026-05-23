@@ -1,13 +1,18 @@
 import { Component } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { IntroComponent } from './intro/intro.component';
+import { ToastContainerComponent } from './components/toast-container/toast-container.component';
+import { ModalContainerComponent } from './components/modal-container/modal-container.component';
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, IntroComponent, RouterLink, RouterLinkActive],
+    imports: [RouterOutlet, IntroComponent, RouterLink, RouterLinkActive, ToastContainerComponent, ModalContainerComponent],
     template: `
     <app-intro></app-intro>
+    <app-toast-container></app-toast-container>
+    <app-modal-container></app-modal-container>
     <div class="app-container">
+
       <header class="app-header">
         <a class="logo" routerLink="/">
           <img src="assets/logo.svg" alt="Poker Planning Neo" width="28" height="28">

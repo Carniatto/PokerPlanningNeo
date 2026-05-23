@@ -5,6 +5,8 @@ import { JiraAuthService } from '../../services/jira-auth.service';
 import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
 import { Task, GameService } from '../../game.service';
+import { ModalService } from '../../services/modal.service';
+
 
 @Component({
   selector: 'app-task-list',
@@ -190,6 +192,7 @@ export class TaskListComponent implements OnInit {
   jiraApi = inject(JiraApiService);
   private gameService = inject(GameService);
   private sanitizer = inject(DomSanitizer);
+  private modalService = inject(ModalService);
 
   jiraSites = signal<any[]>([]);
   selectedJiraSite = signal<string>(localStorage.getItem('JIRA_SELECTED_SITE') || '');
@@ -353,7 +356,13 @@ export class TaskListComponent implements OnInit {
   }
 
   async deleteTask(taskId: string) {
-    if (confirm('Are you sure you want to remove this task?')) {
+    const confirmed = await this.modalService.confirm(
+      'Remove Task',
+      'Are you sure you want to remove this task?',
+      'Remove',
+      'Cancel'
+    );
+    if (confirmed) {
       try {
         await this.gameService.deleteTask(this.roomId(), taskId);
       } catch (e) {
@@ -361,6 +370,7 @@ export class TaskListComponent implements OnInit {
       }
     }
   }
+
 
   async updateEstimate(taskId: string, estimate: string) {
     try {

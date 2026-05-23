@@ -4,6 +4,9 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../game.service';
+import { ModalService } from '../services/modal.service';
+import { ToastService } from '../services/toast.service';
+
 import { VotingCardComponent } from '../components/voting-card/voting-card.component';
 import { TaskDescriptionComponent } from '../components/task-description/task-description.component';
 import { RoomHeaderComponent } from '../components/room-header/room-header.component';
@@ -1190,6 +1193,9 @@ export class RoomComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private gameService = inject(GameService);
+  private modalService = inject(ModalService);
+  private toastService = inject(ToastService);
+
 
   roomId: string | null = null;
 
@@ -1492,7 +1498,13 @@ export class RoomComponent implements OnInit, OnDestroy {
 
       // If session is already ended, skip confirmation
       if (roomState?.status !== 'ended') {
-        if (confirm('Are you sure you want to end the session? This will disconnect all players.')) {
+        const confirmed = await this.modalService.confirm(
+          'End Session',
+          'Are you sure you want to end the session? This will disconnect all players.',
+          'End Session',
+          'Cancel'
+        );
+        if (confirmed) {
           this.isLeaving = true;
           this.isLoading.set(true);
 
@@ -1513,6 +1525,7 @@ export class RoomComponent implements OnInit, OnDestroy {
           return; // Cancelled
         }
       }
+
     }
 
     this.isLeaving = true;
@@ -1737,9 +1750,7 @@ export class RoomComponent implements OnInit, OnDestroy {
   copyInviteLink() {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      // You might want a toast notification here instead of alert
-      // alert('Invite link copied to clipboard!'); 
-      console.log('Invite link copied');
+      this.toastService.success('Invite link copied to clipboard!');
     });
   }
 }

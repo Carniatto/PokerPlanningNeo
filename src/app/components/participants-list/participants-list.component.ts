@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Player, GameService } from '../../game.service';
 import { IconComponent } from '../icon/icon.component';
+import { ModalService } from '../../services/modal.service';
 
 @Component({
     selector: 'app-participants-list',
@@ -83,6 +84,7 @@ import { IconComponent } from '../icon/icon.component';
 export class ParticipantsListComponent {
   private gameService = inject(GameService);
   private route = inject(ActivatedRoute);
+  private modalService = inject(ModalService);
 
   players = input.required<Player[]>();
   areCardsRevealed = input(false);
@@ -102,11 +104,18 @@ export class ParticipantsListComponent {
   async promoteToHost(playerId: string) {
     const roomId = this.gameService.currentRoomId();
     if (roomId) {
-      if (confirm(`Are you sure you want to promote this user to Host? They will share all host controls.`)) {
+      const confirmed = await this.modalService.confirm(
+        'Promote to Host',
+        'Are you sure you want to promote this user to Host? They will share all host controls.',
+        'Promote',
+        'Cancel'
+      );
+      if (confirmed) {
         await this.gameService.promoteToHost(roomId, playerId);
       }
     }
   }
+
 
   getInitials(name: string): string {
     return name ? name.substring(0, 2).toUpperCase() : '??';
