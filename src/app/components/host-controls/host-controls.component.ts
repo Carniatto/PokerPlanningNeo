@@ -25,16 +25,6 @@ import { IconComponent } from '../icon/icon.component';
         <app-icon name="replay" size="medium" class="btn-icon"></app-icon>
         REPLAY ROUND
       </button>
-
-      @if (areCardsRevealed()) {
-        <button 
-          class="btn-neo-secondary btn-control btn-with-icon" 
-          (click)="onEstimateNew()"
-        >
-          <app-icon name="plus" size="medium" class="btn-icon"></app-icon>
-          NEW ESTIMATE
-        </button>
-      }
     </div>
   `,
     styleUrl: './host-controls.component.css'
@@ -45,7 +35,6 @@ export class HostControlsComponent {
 
   reveal = output<void>();
   replay = output<void>();
-  estimateNew = output<void>();
 
   onReveal() {
     this.reveal.emit();
@@ -53,9 +42,5 @@ export class HostControlsComponent {
 
   onReplay() {
     this.replay.emit();
-  }
-
-  onEstimateNew() {
-    this.estimateNew.emit();
   }
 }

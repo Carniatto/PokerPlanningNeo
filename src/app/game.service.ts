@@ -27,6 +27,7 @@ export interface Room {
     players: Player[];
     roomName?: string;
     currentStory?: string;
+    currentTaskId?: string | null;
     createdAt?: number;
     lastActiveAt?: number;
     currentPlayerId?: string;
@@ -285,10 +286,11 @@ export class GameService {
         });
     }
 
-    async updateCurrentStory(roomId: string, story: string) {
+    async updateCurrentStory(roomId: string, story: string, taskId?: string | null) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         await updateDoc(roomRef, {
             currentStory: story,
+            currentTaskId: taskId !== undefined ? taskId : null,
             lastActiveAt: Date.now()
         });
     }
@@ -479,7 +481,7 @@ export class GameService {
         }
     }
 
-    async estimateNewTask(roomId: string, storyDescription: string, finalEstimate: string) {
+    async estimateNewTask(roomId: string, storyDescription: string, finalEstimate: string, taskId?: string | null) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         const roomSnap = await getDoc(roomRef);
         if (roomSnap.exists()) {
@@ -487,7 +489,16 @@ export class GameService {
             
             let updatedTasks = roomData.tasks || [];
             if (storyDescription) {
-                const existingIdx = updatedTasks.findIndex(t => t.description.trim() === storyDescription.trim());
+                // Find by ID first if taskId is provided
+                let existingIdx = -1;
+                if (taskId) {
+                    existingIdx = updatedTasks.findIndex(t => t.id === taskId);
+                }
+                // Fallback to description lookup only if ID lookup failed
+                if (existingIdx === -1) {
+                    existingIdx = updatedTasks.findIndex(t => t.description.trim() === storyDescription.trim());
+                }
+
                 if (existingIdx > -1) {
                     updatedTasks = updatedTasks.map((t, idx) => {
                         if (idx === existingIdx) {
@@ -497,7 +508,7 @@ export class GameService {
                     });
                 } else {
                     const newTask: Task = {
-                        id: Math.random().toString(36).substring(2, 9),
+                        id: taskId || Math.random().toString(36).substring(2, 9),
                         description: storyDescription,
                         finalEstimate: finalEstimate || undefined,
                         createdAt: Date.now()
@@ -515,6 +526,7 @@ export class GameService {
             await updateDoc(roomRef, {
                 tasks: updatedTasks,
                 currentStory: '',
+                currentTaskId: null,
                 players: updatedPlayers,
                 areCardsRevealed: false,
                 timerEndsAt: null,

@@ -1,7 +1,7 @@
 import { Component, input, output, signal, inject, computed } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Task, GameService } from '../../game.service';
 import { FormsModule } from '@angular/forms';
+import { Task, GameService } from '../../game.service';
 
 @Component({
   selector: 'app-task-list',
@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
   template: `
     <div class="task-list-container glass-panel">
       <div class="list-header">
-        <h3>Session History</h3>
+        <h3>Task List</h3>
         @if (isHost()) {
           <div class="add-task-form">
             <input 
@@ -46,6 +46,9 @@ import { FormsModule } from '@angular/forms';
               @for (task of tasks(); track task.id) {
                 <tr [class.active]="isActive(task)">
                   <td class="task-desc">
+                    @if (isActive(task)) {
+                      <span class="estimating-badge">⚡ Estimating</span>
+                    }
                     <span [innerHTML]="getParsedDescription(task.description)"></span>
                   </td>
 
@@ -73,7 +76,6 @@ import { FormsModule } from '@angular/forms';
                           (click)="selectForEstimation(task)" 
                           class="btn-action btn-estimate"
                           title="Set as Active Task"
-                          [disabled]="isActive(task)"
                         >
                           Estimate
                         </button>
@@ -102,6 +104,8 @@ export class TaskListComponent {
   isHost = input<boolean>(false);
   tasks = input<Task[]>([]);
   currentStory = input<string>('');
+  /** ID of the task currently being estimated — preferred over description matching */
+  currentTaskId = input<string | null>(null);
 
   selectTask = output<Task>();
 
@@ -118,26 +122,23 @@ export class TaskListComponent {
     return 'estimate-xlarge';
   }
 
-
-
   private gameService = inject(GameService);
   private sanitizer = inject(DomSanitizer);
 
   isActive(task: Task): boolean {
-    return this.currentStory().trim() === task.description.trim();
+    const id = this.currentTaskId();
+    return !!id && task.id === id;
   }
 
   getParsedDescription(text: string): SafeHtml {
     if (!text) return '';
-    // Escape HTML first
     const escaped = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
-    
-    // Replace URL regex
+
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parsed = escaped.replace(urlRegex, (url) => {
       return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="jira-link">${url}</a>`;
