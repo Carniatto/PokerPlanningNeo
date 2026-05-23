@@ -1630,7 +1630,11 @@ export class RoomComponent implements OnInit, OnDestroy {
 
   async selectTaskForEstimation(task: any) {
     if (!this.roomId) return;
-    await this.gameService.updateCurrentStory(this.roomId, task.description, task.id);
+    if (task) {
+      await this.gameService.updateCurrentStory(this.roomId, task.description, task.id);
+    } else {
+      await this.gameService.updateCurrentStory(this.roomId, '', null);
+    }
     this.gameService.resetVotes();
   }
 

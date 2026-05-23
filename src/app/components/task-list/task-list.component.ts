@@ -59,7 +59,7 @@ import { Task, GameService } from '../../game.service';
       </div>
 
       <div class="table-wrapper">
-        @if (tasks().length === 0) {
+        @if (tasks().length === 0 && loadingTasks().length === 0) {
           <div class="empty-state">
             <p>No tasks in the list yet.</p>
           </div>
@@ -75,20 +75,38 @@ import { Task, GameService } from '../../game.service';
               </tr>
             </thead>
             <tbody>
+              @for (lTask of loadingTasks(); track lTask.id) {
+                <tr class="loading-row">
+                  <td class="task-desc">
+                    <div class="jira-task-badge-wrapper">
+                        <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                            {{ lTask.jiraKey }}
+                        </a>
+                        <span class="jira-summary skeleton-text"></span>
+                    </div>
+                  </td>
+                  <td class="col-estimate text-right">
+                    <span class="estimate-value-neo estimate-none">-</span>
+                  </td>
+                  @if (isHost()) {
+                    <td class="col-actions">
+                    </td>
+                  }
+                </tr>
+              }
               @for (task of tasks(); track task.id) {
                 <tr [class.active]="isActive(task)" 
-                    (click)="isHost() && !isActive(task) ? selectForEstimation(task) : null" 
-                    [class.clickable]="isHost() && !isActive(task)">
+                    (click)="isHost() ? (isActive(task) ? selectForEstimation(null) : selectForEstimation(task)) : null" 
+                    [class.clickable]="isHost()">
                   <td class="task-desc">
-                    @if (isActive(task)) {
-                      <span class="estimating-badge">⚡ Estimating</span>
-                    }
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
                             <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
                                 {{ task.jiraKey }}
                             </a>
-                            <span class="jira-summary" [title]="task.jiraSummary">{{ task.jiraSummary }}</span>
+                            <span class="jira-summary" [class.skeleton-text]="refreshingTasks().has(task.id)" [title]="task.jiraSummary">
+                                {{ refreshingTasks().has(task.id) ? '' : task.jiraSummary }}
+                            </span>
                         </div>
                     } @else {
                         <span [innerHTML]="getParsedDescription(task.description)"></span>
@@ -160,10 +178,12 @@ export class TaskListComponent implements OnInit {
   currentStory = input<string>('');
   /** ID of the task currently being estimated — preferred over description matching */
   currentTaskId = input<string | null>(null);
-
-  selectTask = output<Task>();
+  
+  selectTask = output<Task | null>();
 
   newTaskDescription = signal('');
+  loadingTasks = signal<{id: string, jiraKey: string, jiraUrl: string}[]>([]);
+  refreshingTasks = signal<Set<string>>(new Set());
   estimateOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
   jiraAuth = inject(JiraAuthService);
@@ -257,34 +277,58 @@ export class TaskListComponent implements OnInit {
     let jiraMeta: any = undefined;
     const jiraKey = this.getParsedIssueKey(desc);
     
+    // Check for duplicates
+    if (jiraKey) {
+        if (this.tasks().some(t => t.jiraKey === jiraKey)) {
+            alert('This story is already in the list!');
+            this.newTaskDescription.set('');
+            return;
+        }
+    } else {
+        if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
+            alert('This task is already in the list!');
+            this.newTaskDescription.set('');
+            return;
+        }
+    }
+    
     if (jiraKey && this.jiraAuth.accessToken()) {
-        try {
-            let cloudId = this.selectedJiraSite();
-            if (desc.includes('.atlassian.net')) {
-                const match = desc.match(/https?:\/\/([^/]+)/);
-                if (match && match[1]) {
-                    const domain = match[1].toLowerCase();
-                    const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
-                    if (matchingSite) cloudId = matchingSite.id;
-                }
+        const loadingId = Math.random().toString(36).substring(7);
+        let cloudId = this.selectedJiraSite();
+        if (desc.includes('.atlassian.net')) {
+            const match = desc.match(/https?:\/\/([^/]+)/);
+            if (match && match[1]) {
+                const domain = match[1].toLowerCase();
+                const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
+                if (matchingSite) cloudId = matchingSite.id;
             }
+        }
+        
+        const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || 'domain.atlassian.net'}/browse/${jiraKey}`;
+        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
+        this.newTaskDescription.set('');
+
+        try {
             if (cloudId) {
                const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
                jiraMeta = {
                    jiraKey: issue.key,
                    jiraSummary: issue.fields?.summary || 'No summary',
-                   jiraUrl: desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || 'domain.atlassian.net'}/browse/${issue.key}`
+                   jiraUrl
                };
             }
         } catch(e) {
             console.error('Failed to auto-fetch Jira details', e);
+        } finally {
+            this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
         }
+    } else {
+        this.newTaskDescription.set('');
     }
     
     try {
       const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : desc;
       await this.gameService.addTask(this.roomId(), finalDesc, jiraMeta);
-      this.newTaskDescription.set('');
     } catch (e) {
       console.error('Failed to add task', e);
     }
@@ -308,12 +352,13 @@ export class TaskListComponent implements OnInit {
     }
   }
 
-  selectForEstimation(task: Task) {
+  selectForEstimation(task: Task | null) {
     this.selectTask.emit(task);
   }
 
   async refreshJiraSummary(task: Task) {
       if (!this.selectedJiraSite() || !task.jiraKey) return;
+      this.refreshingTasks.update(s => new Set(s).add(task.id));
       try {
           const issue: any = await firstValueFrom(this.jiraApi.getIssue(this.selectedJiraSite(), task.jiraKey));
           const newSummary = issue.fields?.summary;
@@ -322,6 +367,12 @@ export class TaskListComponent implements OnInit {
           }
       } catch(e) {
           console.error('Failed to refresh summary', e);
+      } finally {
+          this.refreshingTasks.update(s => {
+              const next = new Set(s);
+              next.delete(task.id);
+              return next;
+          });
       }
   }
 
@@ -337,10 +388,12 @@ export class TaskListComponent implements OnInit {
           await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'pending');
           await firstValueFrom(this.jiraApi.updateIssueStoryPoints(this.selectedJiraSite(), task.jiraKey, this.jiraSpField(), Number(task.finalEstimate)) as any);
           await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'synced');
-      } catch (e) {
-          const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-          await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed', errorMsg);
-          console.error('Sync failed', e);
+      } catch (e: any) {
+          console.error('Failed to sync to Jira', e);
+          const errorBody = e?.error;
+          const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
+          alert(`Jira Sync Failed for ${task.jiraKey}:\n${msg}`);
+          await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
       }
   }
 

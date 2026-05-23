@@ -445,13 +445,19 @@ export class GameService {
 
     async addTask(roomId: string, description: string, jiraMeta?: { jiraKey?: string; jiraSummary?: string; jiraUrl?: string }) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
-        const task: Task = {
+        const task: any = {
             id: Math.random().toString(36).substring(2, 9),
             description,
-            createdAt: Date.now(),
-            ...jiraMeta,
-            jiraSyncStatus: jiraMeta?.jiraKey ? 'pending' : undefined
+            createdAt: Date.now()
         };
+        
+        if (jiraMeta) {
+            if (jiraMeta.jiraKey) task.jiraKey = jiraMeta.jiraKey;
+            if (jiraMeta.jiraSummary) task.jiraSummary = jiraMeta.jiraSummary;
+            if (jiraMeta.jiraUrl) task.jiraUrl = jiraMeta.jiraUrl;
+            if (jiraMeta.jiraKey) task.jiraSyncStatus = 'pending';
+        }
+        
         await updateDoc(roomRef, {
             tasks: arrayUnion(task),
             lastActiveAt: Date.now()
@@ -465,7 +471,13 @@ export class GameService {
             const roomData = roomSnap.data() as Room;
             const updatedTasks = (roomData.tasks || []).map(t => {
                 if (t.id === taskId) {
-                    return { ...t, jiraSyncStatus: status, jiraSyncError: error };
+                    const updatedTask = { ...t, jiraSyncStatus: status };
+                    if (error) {
+                        updatedTask.jiraSyncError = error;
+                    } else {
+                        delete updatedTask.jiraSyncError;
+                    }
+                    return updatedTask;
                 }
                 return t;
             });
