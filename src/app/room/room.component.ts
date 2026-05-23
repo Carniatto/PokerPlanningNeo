@@ -47,6 +47,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
               <app-task-description 
                   [isHost]="true"
                   [story]="currentStory()"
+                  [tasks]="currentRoomTasks()"
                   (storyChange)="onStoryChange($event)"
                   (storyBlur)="saveCurrentStory()">
               </app-task-description>
@@ -140,7 +141,8 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
 
                 <app-task-description 
                     [isHost]="false"
-                    [story]="currentStory()">
+                    [story]="currentStory()"
+                    [tasks]="currentRoomTasks()">
                 </app-task-description>
 
                 <div class="task-header">

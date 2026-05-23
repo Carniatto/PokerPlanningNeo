@@ -8,5 +8,8 @@ export const environment = {
     messagingSenderId: "FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER",
     appId: "FIREBASE_APP_ID_PLACEHOLDER",
     measurementId: "FIREBASE_MEASUREMENT_ID_PLACEHOLDER"
-  }
+  },
+  jiraClientId: "13MZVVdvTCbXxq0oQyEy8yEC5YO6EZHn",
+  jiraRedirectUri: "https://pokerplanningneo.web.app/auth/callback",
+  functionsBaseUrl: "https://us-central1-pokerplanningneo.cloudfunctions.net"
 };

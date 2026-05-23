@@ -9,6 +9,8 @@ export const routes: Routes = [
     { path: 'about', component: AboutComponent },
     { path: 'how-it-works', loadComponent: () => import('./how-it-works/how-it-works.component').then(m => m.HowItWorksComponent) },
     { path: 'room/:id', component: RoomComponent, canActivate: [roomGuard] },
+    { path: 'auth/callback', loadComponent: () => import('./components/callback.component').then(m => m.CallbackComponent) },
+    { path: 'jira-test', loadComponent: () => import('./jira-test/jira-test.component').then(m => m.JiraTestComponent) },
     { path: '**', redirectTo: '' }
 ];
 

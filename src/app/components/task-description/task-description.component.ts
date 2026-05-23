@@ -1,6 +1,7 @@
 import { Component, input, output, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { Task } from '../../game.service';
 
 @Component({
     selector: 'app-task-description',
@@ -46,6 +47,7 @@ import { FormsModule } from '@angular/forms';
 export class TaskDescriptionComponent {
   story = input<string>('');
   isHost = input<boolean>(false);
+  tasks = input<Task[]>([]);
   storyChange = output<string>();
 
   // Emit blur event for saving
@@ -63,15 +65,26 @@ export class TaskDescriptionComponent {
 
   getParsedStoryHtml(text: string): SafeHtml {
     if (!text) return '';
-    // Escape HTML first
+    
+    const matchedTask = this.tasks().find(t => t.description.trim() === text.trim());
+    
     const escaped = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+      
+    if (matchedTask?.jiraKey) {
+        const url = matchedTask.jiraUrl || '#';
+        return this.sanitizer.bypassSecurityTrustHtml(`
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+             <a href="${url}" target="_blank" style="background: #2684ff; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-decoration: none;">${matchedTask.jiraKey}</a>
+             <span style="font-weight: 500; color: #ccd6f6;">${matchedTask.jiraSummary}</span>
+          </div>
+        `);
+    }
     
-    // Replace URL regex
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parsed = escaped.replace(urlRegex, (url) => {
       return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="jira-link">${url}</a>`;

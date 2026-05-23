@@ -18,6 +18,12 @@ export interface Task {
     description: string;
     finalEstimate?: string;
     createdAt: number;
+    // Jira Integration metadata
+    jiraKey?: string;
+    jiraSummary?: string;
+    jiraUrl?: string;
+    jiraSyncStatus?: 'pending' | 'synced' | 'failed';
+    jiraSyncError?: string;
 }
 
 export interface Room {
@@ -435,17 +441,59 @@ export class GameService {
         });
     }
 
-    async addTask(roomId: string, description: string) {
+    async addTask(roomId: string, description: string, jiraMeta?: { jiraKey?: string; jiraSummary?: string; jiraUrl?: string }) {
         const roomRef = doc(this.firestore, 'rooms', roomId);
         const task: Task = {
             id: Math.random().toString(36).substring(2, 9),
             description,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            ...jiraMeta,
+            jiraSyncStatus: jiraMeta?.jiraKey ? 'pending' : undefined
         };
         await updateDoc(roomRef, {
             tasks: arrayUnion(task),
             lastActiveAt: Date.now()
         });
+    }
+
+    async updateTaskJiraSyncStatus(roomId: string, taskId: string, status: 'synced' | 'failed' | 'pending', error?: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedTasks = (roomData.tasks || []).map(t => {
+                if (t.id === taskId) {
+                    return { ...t, jiraSyncStatus: status, jiraSyncError: error };
+                }
+                return t;
+            });
+            await updateDoc(roomRef, {
+                tasks: updatedTasks,
+                lastActiveAt: Date.now()
+            });
+        }
+    }
+
+    async updateTaskSummary(roomId: string, taskId: string, newSummary: string) {
+        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (roomSnap.exists()) {
+            const roomData = roomSnap.data() as Room;
+            const updatedTasks = (roomData.tasks || []).map(t => {
+                if (t.id === taskId && t.jiraKey) {
+                    return { 
+                        ...t, 
+                        jiraSummary: newSummary, 
+                        description: `${t.jiraKey}: ${newSummary}` 
+                    };
+                }
+                return t;
+            });
+            await updateDoc(roomRef, {
+                tasks: updatedTasks,
+                lastActiveAt: Date.now()
+            });
+        }
     }
 
     async deleteTask(roomId: string, taskId: string) {
