@@ -6,6 +6,7 @@ import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
 import { Task, GameService } from '../../game.service';
 import { ModalService } from '../../services/modal.service';
+import { ToastService } from '../../services/toast.service';
 
 
 @Component({
@@ -193,6 +194,7 @@ export class TaskListComponent implements OnInit {
   private gameService = inject(GameService);
   private sanitizer = inject(DomSanitizer);
   private modalService = inject(ModalService);
+  private toastService = inject(ToastService);
 
   jiraSites = signal<any[]>([]);
   selectedJiraSite = signal<string>(localStorage.getItem('JIRA_SELECTED_SITE') || '');
@@ -290,13 +292,13 @@ export class TaskListComponent implements OnInit {
     // Check for duplicates
     if (jiraKey) {
         if (this.tasks().some(t => t.jiraKey === jiraKey)) {
-            alert('This story is already in the list!');
+            this.toastService.warning('This story is already in the list!');
             this.newTaskDescription.set('');
             return;
         }
     } else {
         if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
-            alert('This task is already in the list!');
+            this.toastService.warning('This task is already in the list!');
             this.newTaskDescription.set('');
             return;
         }
@@ -335,7 +337,7 @@ export class TaskListComponent implements OnInit {
             } catch(e: any) {
                 console.error('Failed to auto-fetch Jira details', e);
                 if (e?.status === 401) {
-                    alert('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
+                    this.toastService.error('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
                 }
             } finally {
                 this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
@@ -420,7 +422,7 @@ export class TaskListComponent implements OnInit {
           console.error('Failed to sync to Jira', e);
           const errorBody = e?.error;
           const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
-          alert(`Jira Sync Failed for ${task.jiraKey}:\n${msg}`);
+          this.toastService.error(`Jira Sync Failed for ${task.jiraKey}: ${msg}`);
           await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
       }
   }
