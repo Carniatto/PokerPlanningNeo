@@ -497,7 +497,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
 
       .voting-and-tasks-container {
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
         gap: 3rem;
         align-items: start;
       }
