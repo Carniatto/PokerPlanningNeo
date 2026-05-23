@@ -1,10 +1,10 @@
 import { Component, input, output, signal, inject, computed, OnInit } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Task, GameService } from '../../game.service';
 import { FormsModule } from '@angular/forms';
 import { JiraAuthService } from '../../services/jira-auth.service';
 import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
+import { Task, GameService } from '../../game.service';
 
 @Component({
   selector: 'app-task-list',
@@ -80,6 +80,9 @@ import { firstValueFrom } from 'rxjs';
                     (click)="isHost() && !isActive(task) ? selectForEstimation(task) : null" 
                     [class.clickable]="isHost() && !isActive(task)">
                   <td class="task-desc">
+                    @if (isActive(task)) {
+                      <span class="estimating-badge">⚡ Estimating</span>
+                    }
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
                             <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
@@ -155,6 +158,8 @@ export class TaskListComponent implements OnInit {
   isHost = input<boolean>(false);
   tasks = input<Task[]>([]);
   currentStory = input<string>('');
+  /** ID of the task currently being estimated — preferred over description matching */
+  currentTaskId = input<string | null>(null);
 
   selectTask = output<Task>();
 
@@ -218,12 +223,18 @@ export class TaskListComponent implements OnInit {
 
 
   isActive(task: Task): boolean {
-    return this.currentStory().trim() === task.description.trim();
+    const id = this.currentTaskId();
+    return !!id && task.id === id;
   }
 
   getParsedDescription(text: string): SafeHtml {
     if (!text) return '';
-    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const parsed = escaped.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="jira-link">${url}</a>`);
     return this.sanitizer.bypassSecurityTrustHtml(parsed);

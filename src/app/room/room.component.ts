@@ -11,8 +11,8 @@ import { RoomSidebarComponent } from '../components/room-sidebar/room-sidebar.co
 import { TaskListComponent } from '../components/task-list/task-list.component';
 
 @Component({
-    selector: 'app-room',
-    imports: [
+  selector: 'app-room',
+  imports: [
     FormsModule,
     NgTemplateOutlet,
     VotingCardComponent,
@@ -20,8 +20,8 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
     RoomHeaderComponent,
     RoomSidebarComponent,
     TaskListComponent
-],
-    template: `
+  ],
+  template: `
     @if (isLoading()) {
       <div class="loading-container">
         <div class="loader"></div>
@@ -48,6 +48,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                   [isHost]="true"
                   [story]="currentStory()"
                   [tasks]="currentRoomTasks()"
+                  [isFromList]="isCurrentStoryFromList()"
                   (storyChange)="onStoryChange($event)"
                   (storyBlur)="saveCurrentStory()">
               </app-task-description>
@@ -70,7 +71,6 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                 <section class="final-votes-section">
                   <div class="final-votes-header">
                     <h2>Final Votes</h2>
-                    <span class="average-badge">Average: {{ averageVote() }}</span>
                   </div>
                   
                   <div class="grouped-cards-grid">
@@ -103,6 +103,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                 [isHost]="true"
                 [tasks]="currentRoomTasks()"
                 [currentStory]="currentStory()"
+                [currentTaskId]="currentTaskId()"
                 (selectTask)="selectTaskForEstimation($event)">
               </app-task-list>
 
@@ -117,9 +118,16 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
             [areCardsRevealed]="areCardsRevealed()"
             [hasVotes]="hasVotes()"
             [currentUserId]="currentUser()?.uid"
-            (reveal)="revealVotes()"
+            [votingValues]="votingValues"
+            [isFromList]="isCurrentStoryFromList()"
+            [nextTaskName]="nextTask()?.description || null"
+            [hasActiveTask]="!!currentStory()"
+            [confirmedEstimate]="confirmedEstimate()"
+            (confirmedEstimateChange)="confirmedEstimate.set($event)"
+            (reveal)="onRevealVotes()"
             (replay)="replayRound()"
-            (estimateNew)="estimateNewTask()">
+            (saveAndContinue)="saveAndContinue()"
+            (skip)="skipTask()">
           </app-room-sidebar>
         </div>
       }
@@ -142,7 +150,8 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                 <app-task-description 
                     [isHost]="false"
                     [story]="currentStory()"
-                    [tasks]="currentRoomTasks()">
+                    [tasks]="currentRoomTasks()"
+                    [isFromList]="isCurrentStoryFromList()">
                 </app-task-description>
 
                 <div class="task-header">
@@ -201,6 +210,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                   [isHost]="false"
                   [tasks]="currentRoomTasks()"
                   [currentStory]="currentStory()"
+                  [currentTaskId]="currentTaskId()"
                   (selectTask)="selectTaskForEstimation($event)">
                 </app-task-list>
 
@@ -214,7 +224,8 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                [players]="sortedPlayers()" 
                [areCardsRevealed]="areCardsRevealed()"
                [hasVotes]="hasVotes()"
-               [currentUserId]="currentUser()?.uid">
+               [currentUserId]="currentUser()?.uid"
+               [hasActiveTask]="!!currentStory()">
             </app-room-sidebar>
           </div>
         </div>
@@ -313,7 +324,7 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
       </ng-template>
     }
   `,
-    styles: [`
+  styles: [`
     /* Session Ended Specifics */
     .session-ended-overlay {
         background-color: rgba(2, 12, 27, 0.95);
@@ -1189,6 +1200,8 @@ export class RoomComponent implements OnInit, OnDestroy {
   areCardsRevealed = this.gameService.areCardsRevealed;
 
   currentRoomTasks = computed(() => this.gameService.currentRoomData()?.tasks || []);
+  /** The task ID that is currently active for estimation (stored in Firestore) */
+  currentTaskId = computed(() => this.gameService.currentRoomData()?.currentTaskId || null);
   hasVotes = computed(() => {
     return this.players().some(p => p.vote !== undefined && p.vote !== null);
   });
@@ -1196,6 +1209,69 @@ export class RoomComponent implements OnInit, OnDestroy {
   // Local signals for editable fields
   currentRoomName = signal<string>('');
   currentStory = signal<string>('');
+
+  // ── Estimation flow signals ──
+
+  /** True when the current story text exactly matches a task in the list */
+  isCurrentStoryFromList = computed(() => {
+    const story = this.currentStory().trim();
+    if (!story) return false;
+    return this.currentRoomTasks().some(t => t.description.trim() === story);
+  });
+
+  /** Index of the currently active task within the sorted task list (by ID when available) */
+  currentTaskIndex = computed(() => {
+    const taskId = this.currentTaskId();
+    const tasks = this.currentRoomTasks();
+    if (taskId) {
+      const idx = tasks.findIndex(t => t.id === taskId);
+      if (idx !== -1) return idx;
+    }
+    // fallback: match by description
+    const story = this.currentStory().trim();
+    if (!story) return -1;
+    return tasks.findIndex(t => t.description.trim() === story);
+  });
+
+  /** The next task in the list that has not yet been estimated, or null if none */
+  nextTask = computed(() => {
+    const tasks = this.currentRoomTasks();
+    const idx = this.currentTaskIndex();
+    if (idx === -1) {
+      // No active task from list – pick the first unestimated one
+      return tasks.find(t => !t.finalEstimate) || null;
+    }
+    // Walk forward from the current task and find the next unestimated one
+    for (let i = idx + 1; i < tasks.length; i++) {
+      if (!tasks[i].finalEstimate) return tasks[i];
+    }
+    return null;
+  });
+
+  /** The host-confirmed estimate value (pre-filled with Fibonacci coercion when cards reveal) */
+  confirmedEstimate = signal<string>('');
+
+  /** Coerce an average to the nearest value available in the active deck (rounds up on tie) */
+  getClosestVotingValue(avg: number): string {
+    const numericOptions = this.votingValues
+      .map(v => Number(v))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b);
+
+    if (numericOptions.length === 0) return String(Math.round(avg));
+
+    let closest = numericOptions[0];
+    let minDiff = Math.abs(avg - closest);
+    for (let i = 1; i < numericOptions.length; i++) {
+      const diff = Math.abs(avg - numericOptions[i]);
+      // On exact tie, prefer the larger value (safety margin)
+      if (diff < minDiff || (diff === minDiff && numericOptions[i] > closest)) {
+        minDiff = diff;
+        closest = numericOptions[i];
+      }
+    }
+    return String(closest);
+  }
 
   // Sorted Players (Current user first)
   sortedPlayers = computed(() => {
@@ -1491,6 +1567,24 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.gameService.vote(value);
   }
 
+  onRevealVotes() {
+    // Coerce average to nearest deck value and pre-fill confirmedEstimate
+    const votes = this.players()
+      .map(p => p.vote)
+      .filter(v => v !== undefined && v !== null && v !== '?' && v !== '☕')
+      .map(v => Number(v))
+      .filter(n => !isNaN(n));
+
+    if (votes.length > 0) {
+      const avg = votes.reduce((a, b) => a + b, 0) / votes.length;
+      this.confirmedEstimate.set(this.getClosestVotingValue(avg));
+    } else {
+      this.confirmedEstimate.set('');
+    }
+
+    this.gameService.revealCards(true);
+  }
+
   revealVotes() {
     this.gameService.revealCards(true);
   }
@@ -1504,36 +1598,39 @@ export class RoomComponent implements OnInit, OnDestroy {
     this.gameService.resetVotes();
   }
 
-  async estimateNewTask() {
+  /**
+   * Save the confirmed estimate for the current story and automatically advance
+   * to the next unestimated task in the list, or clear the story if none remain.
+   * Uses the host's confirmedEstimate signal (pre-filled with Fibonacci coercion).
+   */
+  async saveAndContinue() {
     if (!this.roomId) return;
-    
-    // Calculate consensus/average vote from current players
-    const votes = this.players()
-      .map(p => p.vote)
-      .filter(v => v !== undefined && v !== null && v !== '?' && v !== '☕')
-      .map(v => Number(v))
-      .filter(n => !isNaN(n));
-      
-    let finalEstimate = '';
-    if (votes.length > 0) {
-      const allSame = votes.every(v => v === votes[0]);
-      if (allSame) {
-        finalEstimate = String(votes[0]);
-      } else {
-        // If not perfect consensus, use average rounded to 1 decimal place
-        finalEstimate = (votes.reduce((a, b) => a + b, 0) / votes.length).toFixed(1);
-      }
-    }
-    
-    // Call estimateNewTask to save the current estimate and reset the board
+
     const storyDesc = this.currentStory().trim();
-    await this.gameService.estimateNewTask(this.roomId, storyDesc, finalEstimate);
-    this.currentStory.set('');
+    const finalEstimate = this.confirmedEstimate();
+
+    await this.gameService.estimateNewTask(this.roomId, storyDesc, finalEstimate, this.currentTaskId());
+
+    const next = this.nextTask();
+    if (next) {
+      await this.gameService.updateCurrentStory(this.roomId, next.description, next.id);
+    }
+  }
+
+  async skipTask() {
+    if (!this.roomId) return;
+    await this.gameService.resetVotes();
+    const next = this.nextTask();
+    if (next) {
+      await this.gameService.updateCurrentStory(this.roomId, next.description, next.id);
+    } else {
+      await this.gameService.updateCurrentStory(this.roomId, '', null);
+    }
   }
 
   async selectTaskForEstimation(task: any) {
     if (!this.roomId) return;
-    await this.gameService.updateCurrentStory(this.roomId, task.description);
+    await this.gameService.updateCurrentStory(this.roomId, task.description, task.id);
     this.gameService.resetVotes();
   }
 

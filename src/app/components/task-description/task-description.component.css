@@ -10,13 +10,13 @@
         letter-spacing: 1px;
     }
 
+    /* ── Editable textarea card (custom / one-off) ── */
     .task-description-card-neo {
         color: var(--text-secondary, #a8b2d1);
         line-height: 1.6;
         max-width: 100%;
         min-height: 0;
 
-        /* Glassmorphism */
         background: rgba(17, 34, 64, 0.4);
         border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
         padding: 1.25rem 1.5rem;
@@ -38,6 +38,75 @@
         background: rgba(17, 34, 64, 0.6);
     }
 
+    /* ── Active Task Card (read-only, from list) ── */
+    .active-task-card {
+        background: rgba(0, 243, 255, 0.04);
+        border: 1px solid rgba(0, 243, 255, 0.25);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .active-task-card:hover {
+        box-shadow: 0 0 25px rgba(0, 243, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .active-task-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 1.25rem;
+        border-bottom: 1px solid rgba(0, 243, 255, 0.12);
+        background: rgba(0, 243, 255, 0.05);
+    }
+
+    .in-progress-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--neon-blue, #00f3ff);
+        animation: badge-glow 2s infinite alternate;
+    }
+
+    @keyframes badge-glow {
+        0%  { text-shadow: 0 0 6px rgba(0, 243, 255, 0.4); }
+        100% { text-shadow: 0 0 14px rgba(0, 243, 255, 0.8); }
+    }
+
+    .btn-edit-toggle {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.7rem;
+        padding: 0.2rem 0.6rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-edit-toggle:hover {
+        border-color: rgba(255, 255, 255, 0.35);
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+    .active-task-body {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .active-task-body .task-content p {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-primary, #fff);
+        line-height: 1.6;
+    }
+
+    /* Shared */
     .check-badge-wrapper {
         width: 32px;
         height: 32px;
@@ -70,6 +139,12 @@
         color: var(--text-primary, #fff);
     }
 
+    .textarea-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.25rem;
+    }
+
     .story-input {
         width: 100%;
         min-height: 0;
@@ -82,7 +157,6 @@
         outline: none;
         line-height: 1.5;
         height: 3em;
-        /* 2 lines * 1.5 line-height */
         overflow-y: auto;
     }
 
@@ -137,10 +211,13 @@
     @media (max-width: 768px) {
         .task-section {
             margin-bottom: 0.5rem;
-            /* Reduced to fit deck */
         }
 
-        .task-description-card {
+        .active-task-body {
+            padding: 0.875rem 1rem;
+        }
+
+        .task-description-card-neo {
             padding: 0.75rem;
         }
     }
