@@ -1,10 +1,11 @@
-import { inject } from '@angular/core';
+import { inject, Injector, runInInjectionContext } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 export const roomGuard: CanActivateFn = async (route, state) => {
     const router = inject(Router);
     const firestore = inject(Firestore);
+    const injector = inject(Injector);
 
     const roomId = route.paramMap.get('id');
 
@@ -13,8 +14,8 @@ export const roomGuard: CanActivateFn = async (route, state) => {
     }
 
     try {
-        const roomRef = doc(firestore, 'rooms', roomId);
-        const docSnap = await getDoc(roomRef);
+        const roomRef = runInInjectionContext(injector, () => doc(firestore, 'rooms', roomId));
+        const docSnap = await runInInjectionContext(injector, () => getDoc(roomRef));
 
         if (docSnap.exists()) {
             return true;

@@ -220,10 +220,18 @@ export class TaskListComponent implements OnInit {
 
   loadJiraSites() {
     this.jiraApi.getAccessibleResources().subscribe({
-      next: (data) => {
-        this.jiraSites.set(data);
-      },
-      error: (err) => console.error('Failed to load Jira sites', err)
+        next: (data) => {
+            this.jiraSites.set(data);
+        },
+        error: (err) => {
+            console.error('Failed to load Jira sites', err);
+            if (err?.status === 401) {
+                // Token was cleared by the API service — UI will revert to "Connect Jira"
+                this.toastService.warning('Jira session expired. Please reconnect.');
+            } else {
+                this.toastService.error('Could not load Jira sites. Check your connection.');
+            }
+        }
     });
   }
 
