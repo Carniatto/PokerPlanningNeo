@@ -18,6 +18,6 @@ test.describe('How It Works Flow', () => {
 
         // 5. Close
         await page.click('button.close-btn');
-        await expect(page.url()).toBe('http://localhost:4201/');
+        await expect(page).toHaveURL(/http:\/\/localhost:\d+\/$/);
     });
 });

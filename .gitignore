@@ -51,3 +51,16 @@ firebase-debug.log
 
 # Firebase debug
 firestore-debug.log
+
+# Local environment secrets
+.secret.local
+functions/.secret.local
+*.local
+.env
+*.env
+
+# Firebase Functions compiled output
+/functions/lib/
+/functions/src/*.js
+/functions/src/*.js.map
+

@@ -8,7 +8,7 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     reporter: 'html',
     use: {
-        baseURL: 'http://localhost:4201',
+        baseURL: 'http://localhost:4205',
         trace: 'on-first-retry',
     },
     projects: [
@@ -18,8 +18,8 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'pnpm exec ng serve --port 4201',
-        url: 'http://localhost:4201',
+        command: 'pnpm exec ng serve --port 4205',
+        url: 'http://localhost:4205',
         reuseExistingServer: true,
     },
 });

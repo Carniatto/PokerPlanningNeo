@@ -1,8 +1,114 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: rooms
+    // Document ID: roomId (6-char alphanumeric ID, uppercase)
+    // Fields:
+    //   - hostId: string (required) - UID of the room creator
+    //   - hostIds: list of strings (optional) - UIDs of co-hosts
+    //   - areCardsRevealed: bool (required) - whether card votes are visible
+    //   - players: list (required) - list of Player maps:
+    //       - id: string
+    //       - name: string
+    //       - status: string
+    //       - vote: string or null (optional)
+    //       - avatarUrl: string (optional)
+    //   - roomName: string (optional) - name of the room
+    //   - currentStory: string (optional) - active estimation story
+    //   - currentTaskId: string or null (optional) - active task ID
+    //   - createdAt: number (optional) - creation timestamp in MS
+    //   - lastActiveAt: number (optional) - last activity timestamp in MS
+    //   - currentPlayerId: string (optional)
+    //   - status: string (optional) - 'active' or 'ended'
+    //   - tasks: list (optional) - list of Task maps:
+    //       - id: string
+    //       - description: string
+    //       - finalEstimate: string (optional)
+    //       - createdAt: number
+    //       - jiraKey: string (optional)
+    //       - jiraSummary: string (optional)
+    //       - jiraUrl: string (optional)
+    //       - jiraSyncStatus: string (optional)
+    //       - jiraSyncError: string (optional)
+    //   - timerEndsAt: number or null (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    // Check if the user is authenticated (includes anonymous auth)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the user is a host of the room
+    function isHost(roomData) {
+      return isAuthenticated() && (
+        roomData.hostId == request.auth.uid ||
+        (roomData.hostIds is list && request.auth.uid in roomData.hostIds)
+      );
+    }
+
+    // Validate room document structure on creation
+    function isValidRoomCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['hostId', 'areCardsRevealed', 'players', 'status']) &&
+             data.hostId == request.auth.uid &&
+             data.areCardsRevealed == false &&
+             data.status == 'active' &&
+             data.players is list && data.players.size() == 1 &&
+             data.players[0].id == request.auth.uid &&
+             (!('roomName' in data) || (data.roomName is string && data.roomName.size() <= 150)) &&
+             (!('createdAt' in data) || data.createdAt is number) &&
+             (!('lastActiveAt' in data) || data.lastActiveAt is number);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /rooms/{roomId} {
+      // Allow authenticated users to retrieve a specific room by its ID.
+      // Global list queries are forbidden to prevent room enumeration and scanning.
+      allow get: if isAuthenticated();
+      allow list: if false;
+
+      // Allow any authenticated user to create a room, provided they follow the schema.
+      allow create: if isAuthenticated() && isValidRoomCreate();
+
+      // Update rules split by role permissions
+      allow update: if isAuthenticated() && (
+        // Case 1: The user is a host of the room.
+        // Hosts have full write permissions over all fields but cannot modify the immutable hostId.
+        (isHost(resource.data) &&
+         request.resource.data.hostId == resource.data.hostId &&
+         (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)) ||
+
+        // Case 2: The user is a guest/player.
+        // Guests can only modify the 'players' and 'lastActiveAt' fields.
+        // All other room and game fields are read-only to guests.
+        (!isHost(resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['players', 'lastActiveAt']) &&
+         request.resource.data.hostId == resource.data.hostId &&
+         request.resource.data.status == resource.data.status &&
+         request.resource.data.areCardsRevealed == resource.data.areCardsRevealed &&
+         (!('hostIds' in resource.data) || request.resource.data.hostIds == resource.data.hostIds) &&
+         (!('tasks' in resource.data) || request.resource.data.tasks == resource.data.tasks) &&
+         (!('currentStory' in resource.data) || request.resource.data.currentStory == resource.data.currentStory) &&
+         (!('currentTaskId' in resource.data) || request.resource.data.currentTaskId == resource.data.currentTaskId) &&
+         (!('timerEndsAt' in resource.data) || request.resource.data.timerEndsAt == resource.data.timerEndsAt) &&
+         (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt))
+      );
+
+      // Only the original host who created the room can delete it.
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.hostId;
     }
   }
 }
