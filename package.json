@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "emulators": "npx firebase-tools emulators:start --project pokerplanningneo",
-    "deploy": "ng build && npx firebase-tools deploy",
+    "deploy": "ng build && npx firebase-tools deploy --force",
     "deploy:functions": "firebase deploy --only functions"
   },
   "private": true,

@@ -17,8 +17,14 @@ export class JiraAuthService {
     login() {
         this.authError.set(null);
         const scopes = 'read:jira-work read:jira-user write:jira-work';
-        const state = Math.random().toString(36).substring(2, 15);
-        localStorage.setItem('JIRA_OAUTH_STATE', state);
+        const csrf = Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('JIRA_OAUTH_STATE', csrf);
+
+        // Save where the user is currently located so we can return them here
+        const returnUrl = window.location.pathname + window.location.search;
+        localStorage.setItem('JIRA_OAUTH_RETURN_URL', returnUrl);
+
+        const state = `${csrf}:${encodeURIComponent(returnUrl)}`;
 
         const authUrl = `https://auth.atlassian.com/authorize?` +
             `audience=api.atlassian.com&` +

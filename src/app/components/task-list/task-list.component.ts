@@ -16,7 +16,7 @@ import { ToastService } from '../../services/toast.service';
     <div class="task-list-container glass-panel">
       <div class="list-header-row">
         <div class="list-title-area">
-          <h3>Session History</h3>
+          <h3>Task List</h3>
           @if (isHost()) {
             <div class="jira-auth-wrapper">
                @if (jiraAuth.accessToken()) {
@@ -181,11 +181,11 @@ export class TaskListComponent implements OnInit {
   currentStory = input<string>('');
   /** ID of the task currently being estimated — preferred over description matching */
   currentTaskId = input<string | null>(null);
-  
+
   selectTask = output<Task | null>();
 
   newTaskDescription = signal('');
-  loadingTasks = signal<{id: string, jiraKey: string, jiraUrl: string}[]>([]);
+  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl: string }[]>([]);
   refreshingTasks = signal<Set<string>>(new Set());
   estimateOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
@@ -204,17 +204,17 @@ export class TaskListComponent implements OnInit {
 
   constructor() {
     effect(() => {
-        const sites = this.jiraSites();
-        const current = this.selectedJiraSite();
-        if (sites.length > 0 && !current) {
-            this.updateJiraSite(sites[0].id);
-        }
+      const sites = this.jiraSites();
+      const current = this.selectedJiraSite();
+      if (sites.length > 0 && !current) {
+        this.updateJiraSite(sites[0].id);
+      }
     });
   }
 
   ngOnInit() {
     if (this.isHost() && this.jiraAuth.accessToken()) {
-        this.loadJiraSites();
+      this.loadJiraSites();
     }
   }
 
@@ -223,23 +223,31 @@ export class TaskListComponent implements OnInit {
         next: (data) => {
             this.jiraSites.set(data);
         },
-        error: (err) => console.error('Failed to load Jira sites', err)
+        error: (err) => {
+            console.error('Failed to load Jira sites', err);
+            if (err?.status === 401) {
+                // Token was cleared by the API service — UI will revert to "Connect Jira"
+                this.toastService.warning('Jira session expired. Please reconnect.');
+            } else {
+                this.toastService.error('Could not load Jira sites. Check your connection.');
+            }
+        }
     });
   }
 
   updateJiraSite(siteId: string) {
-      this.selectedJiraSite.set(siteId);
-      localStorage.setItem('JIRA_SELECTED_SITE', siteId);
+    this.selectedJiraSite.set(siteId);
+    localStorage.setItem('JIRA_SELECTED_SITE', siteId);
   }
 
   updateJiraSpField(field: string) {
-      this.jiraSpField.set(field);
-      localStorage.setItem('JIRA_SP_FIELD', field);
+    this.jiraSpField.set(field);
+    localStorage.setItem('JIRA_SP_FIELD', field);
   }
 
   disconnectJira() {
-      this.jiraAuth.logout();
-      this.showJiraSettings.set(false);
+    this.jiraAuth.logout();
+    this.showJiraSettings.set(false);
   }
 
   getEstimateColorClass(value: string): string {
@@ -273,82 +281,82 @@ export class TaskListComponent implements OnInit {
   }
 
   getParsedIssueKey(input: string): string {
-      const trimmed = input.trim();
-      if (!trimmed) return '';
-      const browseMatch = trimmed.match(/\/browse\/([A-Za-z0-9]+-[0-9]+)/);
-      if (browseMatch && browseMatch[1]) return browseMatch[1].toUpperCase();
-      const keyMatch = trimmed.match(/^([A-Za-z0-9]+-[0-9]+)$/);
-      if (keyMatch && keyMatch[1]) return keyMatch[1].toUpperCase();
-      return '';
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+    const browseMatch = trimmed.match(/\/browse\/([A-Za-z0-9]+-[0-9]+)/);
+    if (browseMatch && browseMatch[1]) return browseMatch[1].toUpperCase();
+    const keyMatch = trimmed.match(/^([A-Za-z0-9]+-[0-9]+)$/);
+    if (keyMatch && keyMatch[1]) return keyMatch[1].toUpperCase();
+    return '';
   }
 
   async addTask() {
     const desc = this.newTaskDescription().trim();
     if (!desc) return;
-    
+
     let jiraMeta: any = undefined;
     const jiraKey = this.getParsedIssueKey(desc);
-    
+
     // Check for duplicates
     if (jiraKey) {
-        if (this.tasks().some(t => t.jiraKey === jiraKey)) {
-            this.toastService.warning('This story is already in the list!');
-            this.newTaskDescription.set('');
-            return;
-        }
-    } else {
-        if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
-            this.toastService.warning('This task is already in the list!');
-            this.newTaskDescription.set('');
-            return;
-        }
-    }
-    
-    if (jiraKey) {
-        const loadingId = Math.random().toString(36).substring(7);
-        let cloudId = this.selectedJiraSite();
-        if (desc.includes('.atlassian.net')) {
-            const match = desc.match(/https?:\/\/([^/]+)/);
-            if (match && match[1]) {
-                const domain = match[1].toLowerCase();
-                const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
-                if (matchingSite) cloudId = matchingSite.id;
-            }
-        }
-        
-        const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
-        const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
-        
-        jiraMeta = {
-            jiraKey,
-            jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
-            jiraUrl
-        };
-        
-        if (this.jiraAuth.accessToken()) {
-            this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
-            this.newTaskDescription.set('');
-
-            try {
-                if (cloudId) {
-                   const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
-                   jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
-                }
-            } catch(e: any) {
-                console.error('Failed to auto-fetch Jira details', e);
-                if (e?.status === 401) {
-                    this.toastService.error('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
-                }
-            } finally {
-                this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
-            }
-        } else {
-            this.newTaskDescription.set('');
-        }
-    } else {
+      if (this.tasks().some(t => t.jiraKey === jiraKey)) {
+        this.toastService.warning('This story is already in the list!');
         this.newTaskDescription.set('');
+        return;
+      }
+    } else {
+      if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
+        this.toastService.warning('This task is already in the list!');
+        this.newTaskDescription.set('');
+        return;
+      }
     }
-    
+
+    if (jiraKey) {
+      const loadingId = Math.random().toString(36).substring(7);
+      let cloudId = this.selectedJiraSite();
+      if (desc.includes('.atlassian.net')) {
+        const match = desc.match(/https?:\/\/([^/]+)/);
+        if (match && match[1]) {
+          const domain = match[1].toLowerCase();
+          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
+          if (matchingSite) cloudId = matchingSite.id;
+        }
+      }
+
+      const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
+      const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
+
+      jiraMeta = {
+        jiraKey,
+        jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
+        jiraUrl
+      };
+
+      if (this.jiraAuth.accessToken()) {
+        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
+        this.newTaskDescription.set('');
+
+        try {
+          if (cloudId) {
+            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
+            jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
+          }
+        } catch (e: any) {
+          console.error('Failed to auto-fetch Jira details', e);
+          if (e?.status === 401) {
+            this.toastService.error('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
+          }
+        } finally {
+          this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
+        }
+      } else {
+        this.newTaskDescription.set('');
+      }
+    } else {
+      this.newTaskDescription.set('');
+    }
+
     try {
       const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : desc;
       await this.gameService.addTask(this.roomId(), finalDesc, jiraMeta);
@@ -387,56 +395,56 @@ export class TaskListComponent implements OnInit {
   }
 
   async refreshJiraSummary(task: Task) {
-      if (!this.selectedJiraSite() || !task.jiraKey) return;
-      this.refreshingTasks.update(s => new Set(s).add(task.id));
-      try {
-          const issue: any = await firstValueFrom(this.jiraApi.getIssue(this.selectedJiraSite(), task.jiraKey));
-          const newSummary = issue.fields?.summary;
-          if (newSummary && newSummary !== task.jiraSummary) {
-              await this.gameService.updateTaskSummary(this.roomId(), task.id, newSummary);
-          }
-      } catch(e) {
-          console.error('Failed to refresh summary', e);
-      } finally {
-          this.refreshingTasks.update(s => {
-              const next = new Set(s);
-              next.delete(task.id);
-              return next;
-          });
+    if (!this.selectedJiraSite() || !task.jiraKey) return;
+    this.refreshingTasks.update(s => new Set(s).add(task.id));
+    try {
+      const issue: any = await firstValueFrom(this.jiraApi.getIssue(this.selectedJiraSite(), task.jiraKey));
+      const newSummary = issue.fields?.summary;
+      if (newSummary && newSummary !== task.jiraSummary) {
+        await this.gameService.updateTaskSummary(this.roomId(), task.id, newSummary);
       }
+    } catch (e) {
+      console.error('Failed to refresh summary', e);
+    } finally {
+      this.refreshingTasks.update(s => {
+        const next = new Set(s);
+        next.delete(task.id);
+        return next;
+      });
+    }
   }
 
   isInvalidSyncEstimate(est?: string): boolean {
-      if (!est) return true;
-      const n = Number(est);
-      return isNaN(n);
+    if (!est) return true;
+    const n = Number(est);
+    return isNaN(n);
   }
 
   async syncIndividualTask(task: Task) {
-      if (this.isInvalidSyncEstimate(task.finalEstimate) || !task.jiraKey || !this.selectedJiraSite()) return;
-      try {
-          await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'pending');
-          await firstValueFrom(this.jiraApi.updateIssueStoryPoints(this.selectedJiraSite(), task.jiraKey, this.jiraSpField(), Number(task.finalEstimate)) as any);
-          await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'synced');
-      } catch (e: any) {
-          console.error('Failed to sync to Jira', e);
-          const errorBody = e?.error;
-          const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
-          this.toastService.error(`Jira Sync Failed for ${task.jiraKey}: ${msg}`);
-          await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
-      }
+    if (this.isInvalidSyncEstimate(task.finalEstimate) || !task.jiraKey || !this.selectedJiraSite()) return;
+    try {
+      await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'pending');
+      await firstValueFrom(this.jiraApi.updateIssueStoryPoints(this.selectedJiraSite(), task.jiraKey, this.jiraSpField(), Number(task.finalEstimate)) as any);
+      await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'synced');
+    } catch (e: any) {
+      console.error('Failed to sync to Jira', e);
+      const errorBody = e?.error;
+      const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
+      this.toastService.error(`Jira Sync Failed for ${task.jiraKey}: ${msg}`);
+      await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
+    }
   }
 
   hasSyncableJiraTasks(): boolean {
-      return this.tasks().some(t => t.jiraKey && !this.isInvalidSyncEstimate(t.finalEstimate) && t.jiraSyncStatus !== 'synced');
+    return this.tasks().some(t => t.jiraKey && !this.isInvalidSyncEstimate(t.finalEstimate) && t.jiraSyncStatus !== 'synced');
   }
-  
+
   async syncAllJiraTasks() {
-      this.isSyncingAll.set(true);
-      const syncableTasks = this.tasks().filter(t => t.jiraKey && !this.isInvalidSyncEstimate(t.finalEstimate) && t.jiraSyncStatus !== 'synced');
-      for (const task of syncableTasks) {
-          await this.syncIndividualTask(task);
-      }
-      this.isSyncingAll.set(false);
+    this.isSyncingAll.set(true);
+    const syncableTasks = this.tasks().filter(t => t.jiraKey && !this.isInvalidSyncEstimate(t.finalEstimate) && t.jiraSyncStatus !== 'synced');
+    for (const task of syncableTasks) {
+      await this.syncIndividualTask(task);
+    }
+    this.isSyncingAll.set(false);
   }
 }

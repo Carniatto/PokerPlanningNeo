@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { JiraAuthService } from './jira-auth.service';
 import { environment } from '../../environments/environment';
 import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Injectable({
     providedIn: 'root'
@@ -26,16 +27,27 @@ export class JiraApiService {
         const url = `${environment.functionsBaseUrl}/jiraApiProxy`;
         try {
             const headers = this.getProxyHeaders(targetUrl);
+            let req$: Observable<T>;
             if (method === 'GET') {
-                return this.http.get<T>(url, { headers });
+                req$ = this.http.get<T>(url, { headers });
             } else if (method === 'POST') {
-                return this.http.post<T>(url, body, { headers });
+                req$ = this.http.post<T>(url, body, { headers });
             } else if (method === 'PUT') {
-                return this.http.put<T>(url, body, { headers });
+                req$ = this.http.put<T>(url, body, { headers });
             } else if (method === 'DELETE') {
-                return this.http.delete<T>(url, { headers });
+                req$ = this.http.delete<T>(url, { headers });
+            } else {
+                return throwError(() => new Error(`Unsupported method: ${method}`));
             }
-            return throwError(() => new Error(`Unsupported method: ${method}`));
+            return req$.pipe(
+                catchError((err) => {
+                    if (err?.status === 401) {
+                        // Token is expired or revoked — clear it so the UI shows "Connect Jira"
+                        this.auth.setToken(null, null);
+                    }
+                    return throwError(() => err);
+                })
+            );
         } catch (err) {
             return throwError(() => err);
         }

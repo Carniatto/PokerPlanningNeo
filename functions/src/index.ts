@@ -1,7 +1,12 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as corsLib from "cors";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onRequest } from "firebase-functions/v2/https";
+import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
+import { setGlobalOptions } from "firebase-functions/v2";
+
+setGlobalOptions({ region: "europe-west1" });
 
 const cors = corsLib({ origin: true });
 const JIRA_CLIENT_SECRET = defineSecret("JIRA_CLIENT_SECRET");
@@ -13,7 +18,7 @@ admin.initializeApp();
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-export const cleanZombieRooms = functions.pubsub.schedule("every 24 hours").onRun(async (context) => {
+export const cleanZombieRooms = onSchedule("every 24 hours", async (event) => {
     const now = Date.now();
     const cutoff = now - TWENTY_FOUR_HOURS_MS;
 
@@ -22,7 +27,7 @@ export const cleanZombieRooms = functions.pubsub.schedule("every 24 hours").onRu
 
     if (snapshot.empty) {
         console.log("No zombie rooms found.");
-        return null;
+        return;
     }
 
     const batch = admin.firestore().batch();
@@ -35,11 +40,10 @@ export const cleanZombieRooms = functions.pubsub.schedule("every 24 hours").onRu
 
     await batch.commit();
     console.log(`Deleted ${deleteCount} zombie rooms.`);
-    return null;
 });
 
 // Manual trigger for testing
-export const cleanZombieRoomsManual = functions.https.onRequest(async (req, res) => {
+export const cleanZombieRoomsManual = onRequest(async (req, res) => {
     const now = Date.now();
     // For manual testing, we might want a shorter cutoff or just use the same logic
     // Using 24 hours for consistency, but logic can be adjusted for testing.
@@ -65,23 +69,27 @@ export const cleanZombieRoomsManual = functions.https.onRequest(async (req, res)
     res.send(`Deleted ${deleteCount} zombie rooms.`);
 });
 
-export const cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").onUpdate(async (change, context) => {
-    const newData = change.after.data();
-    if (!newData) return null; // Document deleted
+export const cleanEmptyRooms = onDocumentUpdated("rooms/{roomId}", async (event) => {
+    const change = event.data;
+    if (!change) return;
 
+    const newData = change.after.data();
+    if (!newData) return; // Document deleted
+
+    const roomId = event.params.roomId;
     const players = newData.players || [];
 
     // Check for "Disconnected" players
     const disconnectedPlayers = players.filter((p: any) => p.status === 'Disconnected');
 
     if (disconnectedPlayers.length > 0) {
-        console.log(`Found ${disconnectedPlayers.length} disconnected players in room ${context.params.roomId}. Waiting 20s...`);
+        console.log(`Found ${disconnectedPlayers.length} disconnected players in room ${roomId}. Waiting 20s...`);
         // Wait 20s
         await new Promise(resolve => setTimeout(resolve, 20000));
 
         // Re-fetch
         const currentDoc = await change.after.ref.get();
-        if (!currentDoc.exists) return null;
+        if (!currentDoc.exists) return;
 
         const currentData = currentDoc.data();
         const currentPlayers = currentData?.players || [];
@@ -96,7 +104,7 @@ export const cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").on
         });
 
         if (playersToRemove.length > 0) {
-            console.log(`Removing ${playersToRemove.length} players who are stil Disconnected.`);
+            console.log(`Removing ${playersToRemove.length} players who are still Disconnected.`);
             const updatedPlayers = currentPlayers.filter((cp: any) =>
                 !playersToRemove.some((pr: any) => pr.id === cp.id)
             );
@@ -110,24 +118,22 @@ export const cleanEmptyRooms = functions.firestore.document("rooms/{roomId}").on
             } else {
                 await change.after.ref.update({ players: updatedPlayers });
             }
-            return null;
+            return;
         }
     }
 
     // Existing "Empty Room" logic (fallback if room is truly empty [])
     if (players.length === 0) {
-        console.log(`Room ${context.params.roomId} is empty. Deleting...`);
+        console.log(`Room ${roomId} is empty. Deleting...`);
         await change.after.ref.delete();
     }
-
-    return null;
 });
 
 // ============================================================================
 // Jira Integration Endpoints
 // ============================================================================
 
-export const exchangeToken = functions.runWith({ secrets: [JIRA_CLIENT_SECRET] }).https.onRequest((req, res) => {
+export const exchangeToken = onRequest({ secrets: [JIRA_CLIENT_SECRET] }, (req, res) => {
     cors(req, res, async () => {
         if (req.method !== 'POST') {
             res.status(405).send('Method Not Allowed');
@@ -173,7 +179,7 @@ export const exchangeToken = functions.runWith({ secrets: [JIRA_CLIENT_SECRET] }
     });
 });
 
-export const jiraApiProxy = functions.https.onRequest((req, res) => {
+export const jiraApiProxy = onRequest((req, res) => {
     cors(req, res, async () => {
         // Only allow specific methods if necessary, or pass through everything
         const authHeader = req.header('Authorization');

@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, effect } from '@angular/core';
+import { Injectable, inject, signal, effect, Injector, runInInjectionContext } from '@angular/core';
 import { Firestore, doc, docData, setDoc, updateDoc, arrayUnion, arrayRemove, deleteField, getDoc, runTransaction } from '@angular/fire/firestore';
 import { Auth, signInAnonymously, user, User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
@@ -51,6 +51,7 @@ export class GameService {
     private firestore = inject(Firestore);
     private auth = inject(Auth);
     private router = inject(Router);
+    private injector = inject(Injector);
 
     currentUser = signal<User | null>(null);
     currentRoomId = signal<string | null>(null);
@@ -66,15 +67,17 @@ export class GameService {
     constructor() {
         console.log('GameService initialized');
         // Monitor Auth State
-        user(this.auth).subscribe(user => {
+        this.runInContext(() => user(this.auth)).subscribe(user => {
             console.log('Auth state changed:', user ? 'User logged in' : 'No user');
             this.currentUser.set(user);
             if (!user) {
                 console.log('No user, attempting anonymous sign-in...');
-                signInAnonymously(this.auth).then(() => {
-                    console.log('Anonymous sign-in successful');
-                }).catch(error => {
-                    console.error('Anonymous sign-in failed:', error);
+                this.runInContext(() => {
+                    signInAnonymously(this.auth).then(() => {
+                        console.log('Anonymous sign-in successful');
+                    }).catch(error => {
+                        console.error('Anonymous sign-in failed:', error);
+                    });
                 });
             }
         });
@@ -96,7 +99,11 @@ export class GameService {
                 this.isHost.set(false);
                 this.areCardsRevealed.set(false);
             }
-        }, { allowSignalWrites: true });
+        });
+    }
+
+    private runInContext<T>(fn: () => T): T {
+        return runInInjectionContext(this.injector, fn);
     }
 
     async createRoom(userName: string) {
@@ -107,7 +114,7 @@ export class GameService {
             let user = this.currentUser();
             if (!user) {
                 console.log('User not logged in, waiting for auth...');
-                const credential = await signInAnonymously(this.auth);
+                const credential = await this.runInContext(() => signInAnonymously(this.auth));
                 user = credential.user;
                 console.log('Signed in (explicitly).');
             }
@@ -119,7 +126,7 @@ export class GameService {
 
             const roomId = this.generateRoomId();
             console.log('Generated Room ID:', roomId);
-            const roomRef = doc(this.firestore, 'rooms', roomId);
+            const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
 
             const hostPlayer: Player = {
                 id: user.uid,
@@ -141,7 +148,7 @@ export class GameService {
             };
 
             console.log('Setting document in Firestore...');
-            await setDoc(roomRef, newRoom);
+            await this.runInContext(() => setDoc(roomRef, newRoom));
             console.log('Document set. Joining room...');
             await this.joinRoom(roomId);
             return roomId;
@@ -154,7 +161,7 @@ export class GameService {
     async joinRoom(roomId: string, userName?: string) {
         let user = this.currentUser();
         if (!user) {
-            const credential = await signInAnonymously(this.auth);
+            const credential = await this.runInContext(() => signInAnonymously(this.auth));
             user = credential.user;
         }
 
@@ -168,10 +175,10 @@ export class GameService {
         }
 
         // Subscribe to room updates
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         this.roomSubscription?.unsubscribe();
 
-        this.roomSubscription = docData(roomRef).subscribe((data: any) => {
+        this.roomSubscription = this.runInContext(() => docData(roomRef)).subscribe((data: any) => {
             if (data) {
                 this.currentRoomData.set(data as Room);
             } else {
@@ -183,7 +190,7 @@ export class GameService {
         // Add or Update player in the room
         if (userName) {
             try {
-                await runTransaction(this.firestore, async (transaction) => {
+                await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                     const roomSnap = await transaction.get(roomRef);
                     if (roomSnap.exists()) {
                         const roomData = roomSnap.data() as Room;
@@ -212,7 +219,7 @@ export class GameService {
                             lastActiveAt: Date.now()
                         });
                     }
-                });
+                }));
             } catch (error) {
                 console.error('Transaction failed in joinRoom:', error);
             }
@@ -220,9 +227,9 @@ export class GameService {
     }
 
     async leaveRoom(roomId: string, userId: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -232,7 +239,7 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
             // Clear local state
             this.currentRoomId.set(null);
             this.currentRoomData.set(null);
@@ -249,9 +256,9 @@ export class GameService {
     }
 
     async setPlayerStatus(roomId: string, userId: string, status: Player['status']) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -266,16 +273,16 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in setPlayerStatus:', error);
         }
     }
 
     async updatePlayerName(roomId: string, userId: string, newName: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -290,7 +297,7 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
             localStorage.setItem(STORAGE_KEY, newName);
         } catch (error) {
             console.error('Transaction failed in updatePlayerName:', error);
@@ -298,37 +305,37 @@ export class GameService {
     }
 
     async updateRoomName(roomId: string, name: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
             roomName: name,
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async updateCurrentStory(roomId: string, story: string, taskId?: string | null) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
             currentStory: story,
             currentTaskId: taskId !== undefined ? taskId : null,
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async endSession(roomId: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
             status: 'ended',
             players: [], // Remove all players
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     private async addPlayerToRoom(roomId: string, player: Player) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
             players: arrayUnion(player),
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async vote(voteValue: string) {
@@ -337,10 +344,10 @@ export class GameService {
 
         if (!roomId || !user) return;
 
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
 
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -355,7 +362,7 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in vote:', error);
         }
@@ -364,21 +371,21 @@ export class GameService {
     async revealCards(reveal: boolean) {
         const roomId = this.currentRoomId();
         if (!roomId) return;
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        await updateDoc(roomRef, {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
             areCardsRevealed: reveal,
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async resetVotes() {
         const roomId = this.currentRoomId();
         if (!roomId) return;
 
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
 
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -393,17 +400,17 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in resetVotes:', error);
         }
     }
 
     async addMockPlayer(roomId: string, name: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
             let mockId = '';
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -422,7 +429,7 @@ export class GameService {
                 } else {
                     throw new Error('Room not found');
                 }
-            });
+            }));
             return mockId;
         } catch (error) {
             console.error('Transaction failed in addMockPlayer:', error);
@@ -431,9 +438,9 @@ export class GameService {
     }
 
     async removeMockPlayer(roomId: string, mockId: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -443,16 +450,16 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in removeMockPlayer:', error);
         }
     }
 
     async submitMockVote(roomId: string, mockId: string, vote: string | null) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -467,38 +474,38 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in submitMockVote:', error);
         }
     }
 
     async promoteToHost(roomId: string, userId: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        const roomSnap = await this.runInContext(() => getDoc(roomRef));
         if (roomSnap.exists()) {
             const roomData = roomSnap.data() as Room;
             const currentHostIds = roomData.hostIds || [roomData.hostId];
             if (!currentHostIds.includes(userId)) {
-                await updateDoc(roomRef, {
+                await this.runInContext(() => updateDoc(roomRef, {
                     hostIds: [...currentHostIds, userId],
                     lastActiveAt: Date.now()
-                });
+                }));
             }
         }
     }
 
     async setTimer(roomId: string, durationSeconds: number | null) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         const timerEndsAt = durationSeconds ? Date.now() + durationSeconds * 1000 : null;
-        await updateDoc(roomRef, {
+        await this.runInContext(() => updateDoc(roomRef, {
             timerEndsAt,
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async addTask(roomId: string, description: string, jiraMeta?: { jiraKey?: string; jiraSummary?: string; jiraUrl?: string }) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         const task: any = {
             id: Math.random().toString(36).substring(2, 9),
             description,
@@ -512,15 +519,15 @@ export class GameService {
             if (jiraMeta.jiraKey) task.jiraSyncStatus = 'pending';
         }
         
-        await updateDoc(roomRef, {
+        await this.runInContext(() => updateDoc(roomRef, {
             tasks: arrayUnion(task),
             lastActiveAt: Date.now()
-        });
+        }));
     }
 
     async updateTaskJiraSyncStatus(roomId: string, taskId: string, status: 'synced' | 'failed' | 'pending', error?: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        const roomSnap = await this.runInContext(() => getDoc(roomRef));
         if (roomSnap.exists()) {
             const roomData = roomSnap.data() as Room;
             const updatedTasks = (roomData.tasks || []).map(t => {
@@ -535,16 +542,16 @@ export class GameService {
                 }
                 return t;
             });
-            await updateDoc(roomRef, {
+            await this.runInContext(() => updateDoc(roomRef, {
                 tasks: updatedTasks,
                 lastActiveAt: Date.now()
-            });
+            }));
         }
     }
 
     async updateTaskSummary(roomId: string, taskId: string, newSummary: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        const roomSnap = await this.runInContext(() => getDoc(roomRef));
         if (roomSnap.exists()) {
             const roomData = roomSnap.data() as Room;
             const updatedTasks = (roomData.tasks || []).map(t => {
@@ -557,29 +564,29 @@ export class GameService {
                 }
                 return t;
             });
-            await updateDoc(roomRef, {
+            await this.runInContext(() => updateDoc(roomRef, {
                 tasks: updatedTasks,
                 lastActiveAt: Date.now()
-            });
+            }));
         }
     }
 
     async deleteTask(roomId: string, taskId: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        const roomSnap = await this.runInContext(() => getDoc(roomRef));
         if (roomSnap.exists()) {
             const roomData = roomSnap.data() as Room;
             const updatedTasks = (roomData.tasks || []).filter(t => t.id !== taskId);
-            await updateDoc(roomRef, {
+            await this.runInContext(() => updateDoc(roomRef, {
                 tasks: updatedTasks,
                 lastActiveAt: Date.now()
-            });
+            }));
         }
     }
 
     async updateTaskEstimate(roomId: string, taskId: string, estimate: string) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
-        const roomSnap = await getDoc(roomRef);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        const roomSnap = await this.runInContext(() => getDoc(roomRef));
         if (roomSnap.exists()) {
             const roomData = roomSnap.data() as Room;
             const updatedTasks = (roomData.tasks || []).map(t => {
@@ -588,17 +595,17 @@ export class GameService {
                 }
                 return t;
             });
-            await updateDoc(roomRef, {
+            await this.runInContext(() => updateDoc(roomRef, {
                 tasks: updatedTasks,
                 lastActiveAt: Date.now()
-            });
+            }));
         }
     }
 
     async estimateNewTask(roomId: string, storyDescription: string, finalEstimate: string, taskId?: string | null) {
-        const roomRef = doc(this.firestore, 'rooms', roomId);
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         try {
-            await runTransaction(this.firestore, async (transaction) => {
+            await this.runInContext(() => runTransaction(this.firestore, async (transaction) => {
                 const roomSnap = await transaction.get(roomRef);
                 if (roomSnap.exists()) {
                     const roomData = roomSnap.data() as Room;
@@ -649,7 +656,7 @@ export class GameService {
                         lastActiveAt: Date.now()
                     });
                 }
-            });
+            }));
         } catch (error) {
             console.error('Transaction failed in estimateNewTask:', error);
         }

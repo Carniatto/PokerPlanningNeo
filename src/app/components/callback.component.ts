@@ -51,23 +51,32 @@ export class CallbackComponent implements OnInit {
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
             const code = params['code'];
-            const state = params['state'];
+            const stateParam = params['state'] || '';
+            
+            const parts = stateParam.split(':');
+            const state = parts[0] || '';
+            const returnUrlFromState = parts[1] ? decodeURIComponent(parts[1]) : '';
+
             const savedState = localStorage.getItem('JIRA_OAUTH_STATE');
+            localStorage.removeItem('JIRA_OAUTH_STATE');
+
+            const rawReturnUrl = returnUrlFromState || localStorage.getItem('JIRA_OAUTH_RETURN_URL') || '/jira-test';
+            localStorage.removeItem('JIRA_OAUTH_RETURN_URL');
+            const returnUrl = rawReturnUrl.includes('/auth/callback') ? '/jira-test' : rawReturnUrl;
 
             if (savedState && state !== savedState) {
                 const errMsg = 'State mismatch. Potential CSRF attack.';
                 console.error(errMsg);
                 this.jiraAuth.authError.set(errMsg);
-                this.router.navigate(['/jira-test']);
+                this.router.navigateByUrl(returnUrl);
                 return;
             }
-            localStorage.removeItem('JIRA_OAUTH_STATE');
 
             if (code) {
                 this.jiraAuth.exchangeToken(code)
                     .then(() => {
                         console.log('Jira authentication successful!');
-                        this.router.navigate(['/jira-test']);
+                        this.router.navigateByUrl(returnUrl);
                     })
                     .catch(err => {
                         console.error('Jira authentication failed:', err);
@@ -79,13 +88,13 @@ export class CallbackComponent implements OnInit {
                             details = err.message;
                         }
                         this.jiraAuth.authError.set(`Jira Token Exchange Failed: ${details}`);
-                        this.router.navigate(['/jira-test']);
+                        this.router.navigateByUrl(returnUrl);
                     });
             } else {
                 const errMsg = 'No authorization code found in URL';
                 console.error(errMsg);
                 this.jiraAuth.authError.set(errMsg);
-                this.router.navigate(['/jira-test']);
+                this.router.navigateByUrl(returnUrl);
             }
         });
     }
