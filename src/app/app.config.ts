@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import { ApplicationConfig, provideZonelessChangeDetection, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
@@ -10,7 +10,7 @@ import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
     providers: [
-        provideZoneChangeDetection({ eventCoalescing: true }),
+        provideZonelessChangeDetection(),
         provideRouter(routes),
         provideHttpClient(),
         provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
