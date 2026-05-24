@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('3-User Game Flow', () => {
-    test('should allow players to vote and host to reveal', async ({ browser }) => {
+    test('should allow players to vote and host/co-hosts to reveal', async ({ browser }) => {
         // Create 3 isolated contexts (different cookies/localStorage = different anonymous users)
         const hostContext = await browser.newContext();
         const aliceContext = await browser.newContext();
@@ -73,7 +73,7 @@ test.describe('3-User Game Flow', () => {
         await expect(alicePage.locator('.average-badge')).toContainText('Average: 6.5');
     });
 
-    test('should restrict reveal controls to the host only', async ({ browser }) => {
+    test('should restrict reveal controls to the host and co-hosts only', async ({ browser }) => {
         const hostContext = await browser.newContext();
         const playerContext = await browser.newContext();
 
