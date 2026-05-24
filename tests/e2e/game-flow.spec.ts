@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('3-User Game Flow', () => {
-    test('should allow host and players to vote and reveal', async ({ browser }) => {
+    test('should allow players to vote and host/co-hosts to reveal', async ({ browser }) => {
         // Create 3 isolated contexts (different cookies/localStorage = different anonymous users)
         const hostContext = await browser.newContext();
         const aliceContext = await browser.newContext();
@@ -72,5 +72,57 @@ test.describe('3-User Game Flow', () => {
         // Check for average badge on Player page (Alice)
         await expect(alicePage.locator('.average-badge')).toBeVisible();
         await expect(alicePage.locator('.average-badge')).toContainText('Average: 6.5');
+    });
+
+    test('should restrict reveal controls to the host and co-hosts only', async ({ browser }) => {
+        const hostContext = await browser.newContext();
+        const playerContext = await browser.newContext();
+
+        const hostPage = await hostContext.newPage();
+        const playerPage = await playerContext.newPage();
+
+        // 1. Host Creates Room
+        await hostPage.goto('/');
+        const enterMatrixBtn = hostPage.locator('button.enter-btn');
+        if (await enterMatrixBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await enterMatrixBtn.click();
+            await enterMatrixBtn.waitFor({ state: 'hidden', timeout: 5000 });
+        }
+        await hostPage.getByPlaceholder('Enter Your Name').fill('Host');
+        await hostPage.click('button:has-text("Create New Room")');
+        await hostPage.waitForURL(/\/room\//);
+        const roomUrl = hostPage.url();
+
+        // 2. Player joins the room
+        await playerPage.goto(roomUrl);
+        await playerPage.getByPlaceholder('Your Name').waitFor({ timeout: 10000 });
+        await playerPage.getByPlaceholder('Your Name').fill('Player');
+        await playerPage.click('button:has-text("Join Room")');
+        await expect(playerPage.locator('.voting-area, .dashboard-container')).toBeVisible({ timeout: 10000 });
+
+        // Verify player cannot see "REVEAL VOTES" button initially
+        await expect(playerPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+
+        // 3. Voting
+        await playerPage.locator('.voting-grid').waitFor({ timeout: 10000 });
+        await playerPage.locator('app-voting-card:has-text("5")').click();
+
+        // Wait for player's vote to register on host
+        await hostPage.locator('.participant-row:has-text("Player").has-voted').waitFor({ timeout: 10000 });
+
+        // Verify player still cannot see "REVEAL VOTES" button after voting
+        await expect(playerPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+
+        // 4. Host reveals the votes
+        const revealBtn = hostPage.locator('button:has-text("REVEAL VOTES")');
+        await expect(revealBtn).toBeEnabled({ timeout: 5000 });
+        await revealBtn.click();
+
+        // Verify results are visible to both
+        await expect(hostPage.locator('.vote-value-text:has-text("5")')).toBeVisible({ timeout: 10000 });
+        await expect(playerPage.locator('.average-badge')).toBeVisible({ timeout: 10000 });
+
+        // Verify player still cannot see "REVEAL VOTES" button after reveal
+        await expect(playerPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
     });
 });
