@@ -38,7 +38,7 @@ test.describe('Host Controls Flow', () => {
         await taskRow.click();
         
         // Verify task description header updates
-        const taskDescHeader = hostPage.locator('app-task-description');
+        const taskDescHeader = hostPage.locator('neo-task-description');
         await expect(taskDescHeader).toContainText('My Custom Story 123');
 
         // 4. Alice joins the room
@@ -46,14 +46,14 @@ test.describe('Host Controls Flow', () => {
         await alicePage.getByPlaceholder('Your Name').waitFor({ timeout: 10000 });
         await alicePage.getByPlaceholder('Your Name').fill('Alice Player');
         await alicePage.click('button:has-text("Join Room")');
-        await expect(alicePage.locator('.voting-area')).toBeVisible({ timeout: 10000 });
+        await expect(alicePage.locator('.room-layout')).toBeVisible({ timeout: 10000 });
 
         // Verify Alice sees the active task
-        await expect(alicePage.locator('app-task-description')).toContainText('My Custom Story 123');
+        await expect(alicePage.locator('neo-task-description')).toContainText('My Custom Story 123');
 
         // 5. Voting
-        await alicePage.locator('app-voting-card:has-text("5")').click();
-        await hostPage.locator('app-voting-card:has-text("8")').click();
+        await alicePage.locator('neo-voting-card:has-text("5")').click();
+        await hostPage.locator('neo-voting-card:has-text("8")').click();
 
         // Wait for votes to register
         await hostPage.locator('.participant-row:has-text("Alice Player").has-voted').waitFor({ timeout: 5000 });

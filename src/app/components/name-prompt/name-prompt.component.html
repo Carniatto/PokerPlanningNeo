@@ -1,0 +1,17 @@
+<neo-modal title="Enter Your Name">
+  <p>Please enter your name to join the room.</p>
+  <neo-input 
+    [value]="name()" 
+    (valueChange)="name.set($event)" 
+    (enter)="onSubmit()" 
+    [placeholder]="'Your Name'" 
+    [autofocus]="true">
+  </neo-input>
+  <button 
+    neo-button 
+    variant="primary" 
+    (click)="onSubmit()" 
+    [disabled]="!name().trim()">
+    Join Room
+  </button>
+</neo-modal>

@@ -1,0 +1,61 @@
+<section class="emulator-panel glass-panel">
+  <div class="emulator-header" (click)="toggleEmulator()">
+    <div class="emulator-title-wrapper">
+      <svg class="emulator-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: var(--neon-blue, #00f3ff);">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      <h3>Local Player Emulator</h3>
+      <span class="emulator-badge">Dev Tool</span>
+    </div>
+    <button class="btn-toggle-emulator">
+      {{ isEmulatorExpanded() ? '▼ Collapse' : '▲ Expand' }}
+    </button>
+  </div>
+
+  @if (isEmulatorExpanded()) {
+    <div class="emulator-content">
+      <div class="emulator-actions-top">
+        <button class="btn-emulator-action" (click)="addQuickMockPlayers(5)">
+          + Add 5 Mock Players
+        </button>
+        <button class="btn-emulator-action btn-secondary" [disabled]="mockPlayers().length === 0" (click)="voteAllMockPlayersRandomly()">
+          🎲 Vote Randomly
+        </button>
+        <button class="btn-emulator-action btn-secondary" [disabled]="mockPlayers().length === 0" (click)="clearAllMockPlayerVotes()">
+          🧹 Clear Votes
+        </button>
+        <button class="btn-emulator-action btn-danger" [disabled]="mockPlayers().length === 0" (click)="removeAllMockPlayers()">
+          🗑️ Remove All
+        </button>
+      </div>
+
+      <div class="mock-players-grid">
+        @for (player of mockPlayers(); track player.id) {
+          <div class="mock-player-row">
+            <span class="mock-player-name">{{ player.name }}</span>
+            
+            <div class="mock-player-vote-actions">
+              <select [ngModel]="player.vote || ''" 
+                      (ngModelChange)="submitMockVote(player.id, $event)"
+                      class="mock-vote-select">
+                <option value="">No vote</option>
+                @for (val of votingValues; track val) {
+                  <option [value]="val">{{ val }}</option>
+                }
+              </select>
+              <button class="btn-mock-delete" (click)="removeMockPlayer(player.id)" title="Remove player">
+                ✕
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="emulator-empty-state">
+            No mock players. Click "+ Add 5 Mock Players" to simulate a real estimation session!
+          </div>
+        }
+      </div>
+    </div>
+  }
+</section>

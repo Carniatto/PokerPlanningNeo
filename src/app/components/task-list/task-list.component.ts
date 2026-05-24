@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
 
 
 @Component({
-  selector: 'app-task-list',
+  selector: 'neo-task-list',
   imports: [FormsModule],
   template: `
     <div class="task-list-container glass-panel">

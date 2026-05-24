@@ -12,7 +12,7 @@ import { Player } from '../../game.service';
  *   • Results (areCardsRevealed=true)  – shows stats, estimate chip-picker, Save & Continue CTA
  */
 @Component({
-  selector: 'app-round-result',
+  selector: 'neo-round-result',
   imports: [FormsModule, IconComponent],
   template: `
     <div [class]="cardClass()">
@@ -56,7 +56,7 @@ import { Player } from '../../game.service';
             </button>
 
             <button class="btn-link replay-link" (click)="replay.emit()">
-              <app-icon name="replay" size="small" class="btn-icon"></app-icon>
+              <neo-icon name="replay" size="small" class="btn-icon"></neo-icon>
               Replay Round
             </button>
           }

@@ -1,26 +1,25 @@
 import { Component, inject } from '@angular/core';
 import { ModalService } from '../../services/modal.service';
+import { ModalComponent } from '../ui/modal/modal.component';
+import { ButtonComponent } from '../ui/button/button.component';
 
 @Component({
-  selector: 'app-modal-container',
+  selector: 'neo-modal-container',
   standalone: true,
+  imports: [ModalComponent, ButtonComponent],
   template: `
     @if (modalService.activeModal(); as modal) {
-      <div class="modal-overlay" (click)="dismiss(false, modal)">
-        <div class="modal-content glass-panel" (click)="$event.stopPropagation()">
-          <div class="modal-header-glow"></div>
-          <h2>{{ modal.title }}</h2>
-          <p>{{ modal.message }}</p>
-          <div class="modal-actions">
-            <button class="btn-neo-secondary btn-cancel" (click)="dismiss(false, modal)">
-              {{ modal.cancelText || 'Cancel' }}
-            </button>
-            <button class="btn-neo-primary btn-confirm" (click)="dismiss(true, modal)" autofocus>
-              {{ modal.confirmText || 'Confirm' }}
-            </button>
-          </div>
+      <neo-modal [title]="modal.title" [dismissible]="true" (close)="dismiss(false, modal)">
+        <p>{{ modal.message }}</p>
+        <div class="modal-actions">
+          <button neo-button variant="cancel" (click)="dismiss(false, modal)">
+            {{ modal.cancelText || 'Cancel' }}
+          </button>
+          <button neo-button variant="primary" (click)="dismiss(true, modal)" autofocus>
+            {{ modal.confirmText || 'Confirm' }}
+          </button>
         </div>
-      </div>
+      </neo-modal>
     }
   `,
   styleUrl: './modal-container.component.css'

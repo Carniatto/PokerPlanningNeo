@@ -7,7 +7,7 @@ import { IconComponent } from '../icon/icon.component';
 import { ModalService } from '../../services/modal.service';
 
 @Component({
-    selector: 'app-participants-list',
+    selector: 'neo-participants-list',
     imports: [FormsModule, IconComponent],
     template: `
     <div class="participants-container">
@@ -35,7 +35,7 @@ import { ModalService } from '../../services/modal.service';
                         class="edit-name-input"
                         autofocus>
                  <button class="btn-confirm" (click)="saveName(player.id)" title="Save">
-                    <app-icon name="check" size="medium"></app-icon>
+                    <neo-icon name="check" size="medium"></neo-icon>
                  </button>
                </div>
              } @else {
@@ -44,7 +44,7 @@ import { ModalService } from '../../services/modal.service';
                   @if (player.id === currentUserId()) { 
                     <span class="you-tag">(You)</span> 
                     <button class="btn-edit" (click)="enableEdit(player); $event.stopPropagation()" title="Edit Name">
-                        <app-icon name="edit" size="small"></app-icon>
+                        <neo-icon name="edit" size="small"></neo-icon>
                     </button>
                   }
                   @if (isPlayerHost(player.id)) {
@@ -63,14 +63,14 @@ import { ModalService } from '../../services/modal.service';
                @if (areCardsRevealed()) {
                  @if (player.vote === '☕') {
                    <div class="vote-icon-wrapper">
-                     <app-icon name="coffee" size="full"></app-icon>
+                     <neo-icon name="coffee" size="full"></neo-icon>
                    </div>
                  } @else {
                    <span class="vote-value">{{ player.vote }}</span>
                  }
                } @else {
                  <span class="vote-hidden">
-                    <app-icon name="vote-hidden" size="medium"></app-icon>
+                    <neo-icon name="vote-hidden" size="medium"></neo-icon>
                  </span>
                }
             }

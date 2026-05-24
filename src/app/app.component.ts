@@ -9,8 +9,8 @@ import { ModalContainerComponent } from './components/modal-container/modal-cont
     imports: [RouterOutlet, IntroComponent, RouterLink, RouterLinkActive, ToastContainerComponent, ModalContainerComponent],
     template: `
     <app-intro></app-intro>
-    <app-toast-container></app-toast-container>
-    <app-modal-container></app-modal-container>
+    <neo-toast-container></neo-toast-container>
+    <neo-modal-container></neo-modal-container>
     <div class="app-container">
 
       <header class="app-header">

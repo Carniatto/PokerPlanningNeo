@@ -2,7 +2,7 @@ import { Component, input } from '@angular/core';
 
 
 @Component({
-    selector: 'app-icon',
+    selector: 'neo-icon',
     imports: [],
     template: `
     <div class="icon-container" [class]="size()" [style.--coffee-gradient]="'url(#neonGradient-' + uniqueId + ')'">

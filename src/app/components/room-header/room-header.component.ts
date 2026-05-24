@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { TimerComponent } from '../timer/timer.component';
 
 @Component({
-    selector: 'app-room-header',
+    selector: 'neo-room-header',
     imports: [FormsModule, TimerComponent],
     template: `
     <header class="content-header">
@@ -27,7 +27,7 @@ import { TimerComponent } from '../timer/timer.component';
             <span class="link-icon">🔗</span>
             <span class="link-text">Copy Invite Link</span>
           </a>
-          <app-timer></app-timer>
+          <neo-timer></neo-timer>
         </div>
       </div>
       @if (isHost()) {

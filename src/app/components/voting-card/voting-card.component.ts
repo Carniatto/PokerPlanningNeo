@@ -3,7 +3,7 @@ import { Component, input, output, computed } from '@angular/core';
 import { IconComponent } from '../icon/icon.component';
 
 @Component({
-    selector: 'app-voting-card',
+    selector: 'neo-voting-card',
     imports: [IconComponent],
     template: `
     <div [class]="'vote-card ' + voteClass()" 
@@ -14,7 +14,7 @@ import { IconComponent } from '../icon/icon.component';
         @if (value() === '☕') {
           <div class="icon-wrapper" 
                [style.--coffee-stroke]="selected() ? 'var(--card-color)' : 'rgba(255, 255, 255, 0.35)'">
-             <app-icon name="coffee" size="full"></app-icon>
+             <neo-icon name="coffee" size="full"></neo-icon>
           </div>
         } @else {
           <svg class="card-content" viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet">

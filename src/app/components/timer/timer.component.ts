@@ -2,7 +2,7 @@ import { Component, inject, signal, computed, effect, OnDestroy } from '@angular
 import { GameService } from '../../game.service';
 
 @Component({
-  selector: 'app-timer',
+  selector: 'neo-timer',
   imports: [],
   template: `
     <div class="timer-container" [class.active]="isActive()">

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Task } from '../../game.service';
 
 @Component({
-    selector: 'app-task-description',
+    selector: 'neo-task-description',
     imports: [FormsModule],
     template: `
     <section class="task-section">

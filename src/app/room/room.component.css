@@ -1,0 +1,132 @@
+/* Room Layout Styles */
+.room-layout {
+  display: flex;
+  height: 100vh;
+  background-color: #0a192f;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Main Content */
+.room-main-content {
+  flex: 1;
+  padding: 2rem 3rem;
+  overflow-y: auto;
+  max-width: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.main-content-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.voting-and-tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.voting-cards-column {
+  width: 100%;
+}
+
+.tasks-column {
+  width: 100%;
+}
+    
+.room-sidebar {
+  width: 320px;
+  background-color: #020c1b;
+  border-left: 1px solid var(--border-glass, #1e2d3d);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Loading Styles */
+.loading-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #0a192f;
+  color: #8892b0;
+  gap: 1rem;
+}
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #112240;
+  border-bottom-color: var(--neon-blue, #00f3ff);
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+@keyframes rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+  .room-layout {
+    flex-direction: column;
+    height: calc(100dvh - 64px); /* Subtract Global Header Height */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 0px; 
+    box-sizing: border-box; 
+  }
+  
+  .room-main-content {
+    display: contents;
+  }
+  
+  .main-content-inner {
+      display: contents;
+  }
+
+  /* Reordering Logic */
+  neo-room-header { order: 10; margin-bottom: 0 !important; }
+  neo-task-description { order: 15; } /* Moved above controls */
+  
+  .voting-and-tasks-container {
+      order: 50;
+  }
+
+  /* Adjustments for Mobile - Compact Density */
+  .room-layout neo-room-header { 
+    padding: 1rem 1rem 0 1rem;
+    display: block; 
+    flex: none;
+    margin-bottom: 0.25rem;
+  }
+  
+  .room-layout neo-task-description {
+     padding: 0 1rem;
+     display: block; 
+     flex: none;
+  }
+}
+
+/* WFHD AND ULTRAWIDE OPTIMIZATIONS (2560px and up) */
+@media (min-width: 2560px) {
+  .room-main-content { padding: 3rem 5rem; }
+  .main-content-inner { max-width: 1800px; }
+
+  .voting-and-tasks-container {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
+    gap: 3rem;
+    align-items: start;
+  }
+}

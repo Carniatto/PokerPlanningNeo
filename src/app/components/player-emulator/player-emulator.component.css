@@ -1,0 +1,208 @@
+/* Emulator Styles */
+.emulator-panel {
+  margin-top: 3rem;
+  width: 100%;
+  border-radius: 12px;
+  background: rgba(17, 34, 64, 0.4);
+  border: 1px dashed rgba(0, 243, 255, 0.3);
+  padding: 1rem 1.5rem;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.emulator-panel:hover {
+  background: rgba(17, 34, 64, 0.5);
+  border-color: rgba(0, 243, 255, 0.5);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
+}
+
+.emulator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.emulator-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.emulator-title-wrapper h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.emulator-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 243, 255, 0.15);
+  color: var(--neon-blue, #00f3ff);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+.btn-toggle-emulator {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-emulator:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.emulator-content {
+  margin-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.emulator-actions-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn-emulator-action {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(188, 19, 254, 0.2));
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-emulator-action:not(:disabled):hover {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.3), rgba(188, 19, 254, 0.3));
+  border-color: rgba(0, 243, 255, 0.6);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-emulator-action.btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.btn-emulator-action.btn-secondary:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.btn-emulator-action.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.btn-emulator-action.btn-danger:not(:disabled):hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: white;
+}
+
+.btn-emulator-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.mock-players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.mock-player-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.mock-player-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.mock-player-name {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.mock-player-vote-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mock-vote-select {
+  background: #020c1b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mock-vote-select:focus {
+  border-color: var(--neon-blue, #00f3ff);
+}
+
+.btn-mock-delete {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-mock-delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.emulator-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1.5rem;
+  color: #64748b;
+  font-size: 0.9rem;
+  border: 1px dashed rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}

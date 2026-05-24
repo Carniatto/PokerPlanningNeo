@@ -32,14 +32,15 @@ test.describe('3-User Game Flow', () => {
         await alicePage.getByPlaceholder('Your Name').fill('Alice');
         await alicePage.click('button:has-text("Join Room")');
         // Name prompt should dismiss and Alice should be in the room
-        await expect(alicePage.locator('.voting-area, .dashboard-container')).toBeVisible({ timeout: 10000 });
+        await expect(alicePage.locator('.room-layout')).toBeVisible({ timeout: 10000 });
+
 
         // 3. Bob joins via the room URL similarly
         await bobPage.goto(roomUrl);
         await bobPage.getByPlaceholder('Your Name').waitFor({ timeout: 10000 });
         await bobPage.getByPlaceholder('Your Name').fill('Bob');
         await bobPage.click('button:has-text("Join Room")');
-        await expect(bobPage.locator('.voting-area, .dashboard-container')).toBeVisible({ timeout: 10000 });
+        await expect(bobPage.locator('.room-layout')).toBeVisible({ timeout: 10000 });
 
         // 4. Verify Participants on Host
         await expect(hostPage.locator('.participants-container')).toContainText('Alice', { timeout: 10000 });
@@ -47,10 +48,10 @@ test.describe('3-User Game Flow', () => {
 
         // 5. Voting - click the voting cards on Alice and Bob's pages
         await alicePage.locator('.voting-grid').waitFor({ timeout: 10000 });
-        await alicePage.locator('app-voting-card:has-text("5")').click();
+        await alicePage.locator('neo-voting-card:has-text("5")').click();
 
         await bobPage.locator('.voting-grid').waitFor({ timeout: 10000 });
-        await bobPage.locator('app-voting-card:has-text("8")').click();
+        await bobPage.locator('neo-voting-card:has-text("8")').click();
 
         // Wait for votes to register on host (both participants show as has-voted)
         await hostPage.locator('.participant-row:has-text("Alice").has-voted').waitFor({ timeout: 10000 });

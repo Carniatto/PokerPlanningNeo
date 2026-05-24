@@ -1,0 +1,59 @@
+@if (!isHost()) {
+  <div class="task-header">
+    @if (areCardsRevealed()) {
+      <p class="status-text">The votes are revealed!</p>
+    } @else {
+      <p class="status-text">Select your estimate.</p>
+    }
+  </div>
+}
+
+@if (!areCardsRevealed()) {
+  <section class="deck-section">
+    @if (isHost()) {
+      <h2>Your Deck</h2>
+    }
+    <div class="voting-grid">
+      @for (value of votingValues; track value) {
+        <neo-voting-card 
+          [value]="value" 
+          [selected]="selectedValue() === value"
+          (select)="selectVote($event)">
+        </neo-voting-card>
+      }
+    </div>
+  </section>
+} @else {
+  <!-- FINAL VOTES GRID -->
+  <section class="final-votes-section">
+    <div class="final-votes-header">
+      <h2>Final Votes</h2>
+      @if (!isHost()) {
+        <span class="average-badge">Average: {{ averageVote() }}</span>
+      }
+    </div>
+    
+    <div class="grouped-cards-grid">
+      @for (group of groupedVotes(); track group.vote) {
+        <div class="final-vote-card-wrapper">
+          <div class="grouped-vote-card" [class]="getVoteClass(group.vote)">
+            <div class="vote-value-text">{{ group.vote || '-' }}</div>
+          </div>
+          <div class="avatar-stack">
+            @for (player of group.players.slice(0, 4); track player.id) {
+              <span class="stacked-avatar"
+                    [class.is-host]="isPlayerHost(player.id)"
+                    [class.is-current]="player.id === currentUser()?.uid"
+                    [attr.data-tooltip]="player.name">
+                {{ getInitials(player.name) }}
+              </span>
+            }
+            @if (group.players.length > 4) {
+              <span class="overflow-count">+{{ group.players.length - 4 }}</span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+}

@@ -4,10 +4,12 @@ import { form, Field, FormField } from '@angular/forms/signals';
 import { Router, ActivatedRoute } from '@angular/router';
 import { GameService } from '../game.service';
 
+import { ButtonComponent } from '../components/ui/button/button.component';
+
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, FormField],
+  imports: [FormsModule, ReactiveFormsModule, FormField, ButtonComponent],
   template: `
     <div class="home-container">
       
@@ -32,7 +34,7 @@ import { GameService } from '../game.service';
           <input type="text" [formField]="homeForm.name" placeholder="Enter Your Name" autocomplete="off">
         </div>
 
-        <button class="btn-neo-primary" (click)="createRoom()" [disabled]="formModel().name === ''">
+        <button neo-button variant="primary" (click)="createRoom()" [disabled]="formModel().name === ''">
           Create New Room
         </button>
 
@@ -45,7 +47,7 @@ import { GameService } from '../game.service';
           <input type="text" [formField]="homeForm.roomCode" placeholder="Enter Room Code" autocomplete="off">
         </div>
 
-        <button class="btn-neo" (click)="joinRoom()" [disabled]="formModel().name === '' || formModel().roomCode === ''">
+        <button neo-button variant="outline" (click)="joinRoom()" [disabled]="formModel().name === '' || formModel().roomCode === ''">
           Join Room
         </button>
       </div>

@@ -1,0 +1,9 @@
+<neo-modal title="Session Ended">
+  <p>The host has ended the session.</p>
+  <div class="countdown-circle">
+      <span class="countdown-number">{{ redirectCountdown() }}</span>
+      <span class="countdown-label">seconds</span>
+  </div>
+  <p class="redirect-text">Redirecting to home...</p>
+  <button neo-button variant="primary" (click)="onSubmit()">Leave Now</button>
+</neo-modal>

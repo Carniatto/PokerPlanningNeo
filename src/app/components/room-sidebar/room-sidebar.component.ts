@@ -5,14 +5,14 @@ import { RoundResultComponent } from '../round-result/round-result.component';
 import { ParticipantsListComponent } from '../participants-list/participants-list.component';
 
 @Component({
-    selector: 'app-room-sidebar',
+    selector: 'neo-room-sidebar',
     imports: [RoundResultComponent, ParticipantsListComponent],
     template: `
     <aside class="room-sidebar">
 
       <!-- Unified session control panel (always visible for host; result-only for players) -->
       @if (isHost()) {
-        <app-round-result
+        <neo-round-result
           [isHost]="true"
           [players]="players()"
           [areCardsRevealed]="areCardsRevealed()"
@@ -27,16 +27,16 @@ import { ParticipantsListComponent } from '../participants-list/participants-lis
           (replay)="replay.emit()"
           (saveAndContinue)="saveAndContinue.emit()"
           (skip)="skip.emit()">
-        </app-round-result>
+        </neo-round-result>
       } @else if (areCardsRevealed()) {
         <!-- Player view: show results only when revealed -->
-        <app-round-result
+        <neo-round-result
           [isHost]="false"
           [players]="players()"
           [areCardsRevealed]="true"
           [hasVotes]="hasVotes()"
           [hasActiveTask]="hasActiveTask()">
-        </app-round-result>
+        </neo-round-result>
       }
 
       <!-- Participants List -->
@@ -47,11 +47,11 @@ import { ParticipantsListComponent } from '../participants-list/participants-lis
         </div>
 
         <div class="participant-list">
-          <app-participants-list
+          <neo-participants-list
             [players]="players()"
             [areCardsRevealed]="areCardsRevealed()"
             [currentUserId]="currentUserId()">
-          </app-participants-list>
+          </neo-participants-list>
         </div>
       </div>
 
