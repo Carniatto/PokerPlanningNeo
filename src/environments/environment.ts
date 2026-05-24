@@ -11,5 +11,5 @@ export const environment = {
   },
   jiraClientId: "13MZVVdvTCbXxq0oQyEy8yEC5YO6EZHn",
   jiraRedirectUri: "http://localhost:4200/auth/callback",
-  functionsBaseUrl: "http://127.0.0.1:5001/pokerplanningneo/us-central1"
+  functionsBaseUrl: "http://127.0.0.1:5001/pokerplanningneo/europe-west1"
 };

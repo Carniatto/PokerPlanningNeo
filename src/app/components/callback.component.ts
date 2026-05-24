@@ -51,10 +51,16 @@ export class CallbackComponent implements OnInit {
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
             const code = params['code'];
-            const state = params['state'];
-            const savedState = localStorage.getItem('JIRA_OAUTH_STATE');
+            const stateParam = params['state'] || '';
+            
+            const parts = stateParam.split(':');
+            const state = parts[0] || '';
+            const returnUrlFromState = parts[1] ? decodeURIComponent(parts[1]) : '';
 
-            const rawReturnUrl = localStorage.getItem('JIRA_OAUTH_RETURN_URL') || '/jira-test';
+            const savedState = localStorage.getItem('JIRA_OAUTH_STATE');
+            localStorage.removeItem('JIRA_OAUTH_STATE');
+
+            const rawReturnUrl = returnUrlFromState || localStorage.getItem('JIRA_OAUTH_RETURN_URL') || '/jira-test';
             localStorage.removeItem('JIRA_OAUTH_RETURN_URL');
             const returnUrl = rawReturnUrl.includes('/auth/callback') ? '/jira-test' : rawReturnUrl;
 
@@ -65,7 +71,6 @@ export class CallbackComponent implements OnInit {
                 this.router.navigateByUrl(returnUrl);
                 return;
             }
-            localStorage.removeItem('JIRA_OAUTH_STATE');
 
             if (code) {
                 this.jiraAuth.exchangeToken(code)
