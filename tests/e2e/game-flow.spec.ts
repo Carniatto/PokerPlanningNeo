@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('3-User Game Flow', () => {
-    test('should allow host and players to vote and reveal', async ({ browser }) => {
+    test('should allow players to vote and host to reveal', async ({ browser }) => {
         // Create 3 isolated contexts (different cookies/localStorage = different anonymous users)
         const hostContext = await browser.newContext();
         const aliceContext = await browser.newContext();
@@ -41,6 +41,10 @@ test.describe('3-User Game Flow', () => {
         await bobPage.click('button:has-text("Join Room")');
         await expect(bobPage.locator('.voting-area, .dashboard-container')).toBeVisible({ timeout: 10000 });
 
+        // Verify players cannot see "REVEAL VOTES" button before voting
+        await expect(alicePage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+        await expect(bobPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+
         // 4. Verify Participants on Host
         await expect(hostPage.locator('.participants-container')).toContainText('Alice', { timeout: 10000 });
         await expect(hostPage.locator('.participants-container')).toContainText('Bob', { timeout: 10000 });
@@ -56,6 +60,10 @@ test.describe('3-User Game Flow', () => {
         await hostPage.locator('.participant-row:has-text("Alice").has-voted').waitFor({ timeout: 10000 });
         await hostPage.locator('.participant-row:has-text("Bob").has-voted').waitFor({ timeout: 10000 });
 
+        // Verify players still cannot see "REVEAL VOTES" button after voting
+        await expect(alicePage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+        await expect(bobPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+
         // 6. Host Reveals
         const revealBtn = hostPage.locator('button:has-text("REVEAL VOTES")');
         await expect(revealBtn).toBeEnabled({ timeout: 5000 });
@@ -64,6 +72,10 @@ test.describe('3-User Game Flow', () => {
         // 7. Verify Results - after reveal, .vote-value-text divs show individual votes
         await expect(hostPage.locator('.vote-value-text:has-text("5")')).toBeVisible({ timeout: 10000 });
         await expect(hostPage.locator('.vote-value-text:has-text("8")')).toBeVisible({ timeout: 5000 });
+
+        // Verify players cannot see "REVEAL VOTES" button even after reveal
+        await expect(alicePage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
+        await expect(bobPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
 
         // Check for average in Host's sidebar stats
         await expect(hostPage.locator('.stat:has-text("Avg") .value')).toContainText('6.5');
