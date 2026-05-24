@@ -20,6 +20,10 @@ export class JiraAuthService {
         const state = Math.random().toString(36).substring(2, 15);
         localStorage.setItem('JIRA_OAUTH_STATE', state);
 
+        // Save where the user is currently located so we can return them here
+        const returnUrl = window.location.pathname + window.location.search;
+        localStorage.setItem('JIRA_OAUTH_RETURN_URL', returnUrl);
+
         const authUrl = `https://auth.atlassian.com/authorize?` +
             `audience=api.atlassian.com&` +
             `client_id=${environment.jiraClientId}&` +
