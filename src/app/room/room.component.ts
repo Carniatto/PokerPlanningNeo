@@ -229,7 +229,6 @@ import { TaskListComponent } from '../components/task-list/task-list.component';
                   </div>
                 </div>
 
-                <ng-container *ngTemplateOutlet="emulatorTemplate"></ng-container>
               </div>
             </main>
 
