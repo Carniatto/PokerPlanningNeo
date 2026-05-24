@@ -98,14 +98,14 @@ test.describe('3-User Game Flow', () => {
         await playerPage.getByPlaceholder('Your Name').waitFor({ timeout: 10000 });
         await playerPage.getByPlaceholder('Your Name').fill('Player');
         await playerPage.click('button:has-text("Join Room")');
-        await expect(playerPage.locator('.voting-area, .dashboard-container')).toBeVisible({ timeout: 10000 });
+        await expect(playerPage.locator('.room-layout')).toBeVisible({ timeout: 10000 });
 
         // Verify player cannot see "REVEAL VOTES" button initially
         await expect(playerPage.locator('button:has-text("REVEAL VOTES")')).not.toBeVisible();
 
         // 3. Voting
         await playerPage.locator('.voting-grid').waitFor({ timeout: 10000 });
-        await playerPage.locator('app-voting-card:has-text("5")').click();
+        await playerPage.locator('neo-voting-card:has-text("5")').click();
 
         // Wait for player's vote to register on host
         await hostPage.locator('.participant-row:has-text("Player").has-voted').waitFor({ timeout: 10000 });
