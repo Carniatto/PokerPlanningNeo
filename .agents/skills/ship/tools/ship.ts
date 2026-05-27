@@ -201,7 +201,7 @@ if (runAll || flags.commit) {
       let rawContent = readFileSync(changelogPath, "utf-8");
       const declStr = "export const CHANGELOG: ChangelogEntry[] =";
       const declIndex = rawContent.indexOf(declStr);
-      const arrayStart = rawContent.indexOf("[", declIndex !== -1 ? declIndex : 0);
+      const arrayStart = rawContent.indexOf("[", declIndex !== -1 ? declIndex + declStr.length : 0);
       const arrayEnd = rawContent.lastIndexOf("]") + 1;
       
       if (arrayStart !== -1 && arrayEnd !== -1) {
