@@ -1,6 +1,7 @@
 import { Component, input, output, signal, inject, computed, OnInit, effect } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { JiraAuthService } from '../../services/jira-auth.service';
 import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
@@ -11,7 +12,7 @@ import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'neo-task-list',
-  imports: [FormsModule],
+  imports: [FormsModule, CdkDropList, CdkDrag, CdkDragHandle],
   template: `
     <div class="task-list-container glass-panel">
       <div class="list-header-row">
@@ -83,6 +84,9 @@ import { ToastService } from '../../services/toast.service';
           <table class="tasks-table">
             <thead>
               <tr>
+                @if (isHost()) {
+                  <th class="col-drag"></th>
+                }
                 <th class="col-desc">TASK ID / NAME</th>
                 <th class="col-estimate text-right">ESTIMATE</th>
                 @if (isHost()) {
@@ -90,9 +94,12 @@ import { ToastService } from '../../services/toast.service';
                 }
               </tr>
             </thead>
-            <tbody>
+            <tbody cdkDropList (cdkDropListDropped)="drop($event)">
               @for (lTask of loadingTasks(); track lTask.id) {
                 <tr class="loading-row">
+                  @if (isHost()) {
+                    <td class="col-drag"></td>
+                  }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
                         <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
@@ -113,7 +120,23 @@ import { ToastService } from '../../services/toast.service';
               @for (task of tasks(); track task.id) {
                 <tr [class.active]="isActive(task)" 
                     (click)="isHost() ? (isActive(task) ? selectForEstimation(null) : selectForEstimation(task)) : null" 
-                    [class.clickable]="isHost()">
+                    [class.clickable]="isHost()"
+                    cdkDrag
+                    [cdkDragDisabled]="!isHost()">
+                  @if (isHost()) {
+                    <td class="col-drag" (click)="$event.stopPropagation()">
+                      <div class="drag-handle" cdkDragHandle title="Drag to reorder">
+                        <svg width="12" height="18" viewBox="0 0 12 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="3" cy="3" r="1.5" fill="currentColor"/>
+                          <circle cx="3" cy="9" r="1.5" fill="currentColor"/>
+                          <circle cx="3" cy="15" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="3" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
+                        </svg>
+                      </div>
+                    </td>
+                  }
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
@@ -495,5 +518,20 @@ export class TaskListComponent implements OnInit {
       await this.syncIndividualTask(task);
     }
     this.isSyncingAll.set(false);
+  }
+
+  async drop(event: CdkDragDrop<Task[]>) {
+    if (!this.isHost()) return;
+    if (event.previousIndex === event.currentIndex) return;
+
+    const reordered = [...this.tasks()];
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+
+    try {
+      await this.gameService.reorderTasks(this.roomId(), reordered);
+    } catch (e) {
+      console.error('Failed to reorder tasks', e);
+      this.toastService.error('Failed to reorder tasks. Please try again.');
+    }
   }
 }

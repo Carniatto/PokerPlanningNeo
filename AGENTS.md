@@ -4,8 +4,8 @@ Welcome to the PokerPlanningNeo project. As an AI Agent working on this reposito
 
 ## 1. Environment & Workflow
 
-- **Git Worktrees:** ALWAYS use Git Worktrees for new tasks to isolate your environment.
-  - *Command:* `git worktree add ../<folder> <branch>`
+- **Git Worktrees:** ALWAYS use Git Worktrees for new tasks to isolate your environment. Create the worktree inside the `worktrees/` directory of the workspace (e.g. `./worktrees/wt-<branch>`) so that the agent inherits parent workspace file permissions automatically in the sandbox environment.
+  - *Command:* `git worktree add ./worktrees/wt-<folder> <branch>`
 - **Port Allocation:** NEVER use port 4200 for your development server.
   - Check and update `.agent/active_ports.json` to claim a port.
   - Select a unique port between **4201** and **4299**.
