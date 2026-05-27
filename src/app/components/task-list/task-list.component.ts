@@ -104,9 +104,15 @@ import { ToastService } from '../../services/toast.service';
                   }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
-                        <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                            {{ lTask.jiraKey }}
-                        </a>
+                        @if (lTask.jiraUrl) {
+                            <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                                {{ lTask.jiraKey }}
+                            </a>
+                        } @else {
+                            <span class="jira-key-badge-secondary">
+                                {{ lTask.jiraKey }}
+                            </span>
+                        }
                         <span class="jira-summary skeleton-text"></span>
                     </div>
                   </td>
@@ -142,9 +148,15 @@ import { ToastService } from '../../services/toast.service';
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
-                            <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                                {{ task.jiraKey }}
-                            </a>
+                            @if (task.jiraUrl) {
+                                <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                                    {{ task.jiraKey }}
+                                </a>
+                            } @else {
+                                <span class="jira-key-badge-secondary" title="Jira not connected (key only)">
+                                    {{ task.jiraKey }}
+                                </span>
+                            }
                             <span class="jira-summary" [class.skeleton-text]="refreshingTasks().has(task.id)" [title]="task.jiraSummary">
                                 {{ refreshingTasks().has(task.id) ? '' : task.jiraSummary }}
                             </span>
@@ -223,7 +235,7 @@ export class TaskListComponent implements OnInit {
   selectTask = output<Task | null>();
 
   newTaskDescription = signal('');
-  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl: string }[]>([]);
+  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl?: string }[]>([]);
   refreshingTasks = signal<Set<string>>(new Set());
   estimateOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
@@ -419,16 +431,25 @@ export class TaskListComponent implements OnInit {
         }
       }
 
-      const fallbackDomain = localStorage.getItem('NEO_LAST_JIRA_DOMAIN') || 'domain.atlassian.net';
-      let siteUrl = this.jiraSites().find(s => s.id === cloudId)?.url || domainFromUrl || fallbackDomain;
-      siteUrl = siteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-      const jiraUrl = parsed.jiraUrl || `https://${siteUrl}/browse/${parsed.jiraKey}`;
+      // Only set jiraUrl if we have a connection or if a full link was typed
+      let jiraUrl: string | undefined = undefined;
+      if (parsed.jiraUrl) {
+        jiraUrl = parsed.jiraUrl;
+      } else {
+        const connectedSiteUrl = this.jiraSites().find(s => s.id === cloudId)?.url;
+        if (connectedSiteUrl) {
+          const domain = connectedSiteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+          jiraUrl = `https://${domain}/browse/${parsed.jiraKey}`;
+        }
+      }
 
       jiraMeta = {
         jiraKey: parsed.jiraKey,
-        jiraSummary: parsed.remainingText || (this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary'),
-        jiraUrl
+        jiraSummary: parsed.remainingText || (this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary')
       };
+      if (jiraUrl) {
+        jiraMeta.jiraUrl = jiraUrl;
+      }
 
       if (this.jiraAuth.accessToken()) {
         this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey: parsed.jiraKey, jiraUrl }]);
