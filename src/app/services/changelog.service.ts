@@ -6,10 +6,10 @@ import { CHANGELOG, ChangelogEntry } from '../changelog';
 })
 export class ChangelogService {
   readonly latestVersion = CHANGELOG[0].version;
-  
+
   private lastSeenVersionSignal = signal<string | null>(null);
   lastSeenVersion = this.lastSeenVersionSignal.asReadonly();
-  
+
   isOpen = signal<boolean>(false);
   viewMode = signal<'updates' | 'history'>('history');
 
@@ -21,10 +21,19 @@ export class ChangelogService {
     if (typeof window !== 'undefined' && window.localStorage) {
       const seen = localStorage.getItem('poker_last_seen_version');
       if (seen === null) {
-        // First-time visitor: set version silently to latest so they aren't spammed with historic changelogs
+        // Check if is a old user that had already used the app before poker_last_seen_version was implemented
+        const isOldUser = localStorage.getItem('POKER_USER_NAME') !== null;
+        if (isOldUser) {
+          // An old user should see all the changelog entries
+          this.lastSeenVersionSignal.set('0.0.0');
+        } else {
+          // First-time visitor: set version silently to latest so they aren't spammed with historic changelogs
+          this.lastSeenVersionSignal.set(this.latestVersion);
+        }
+
         localStorage.setItem('poker_last_seen_version', this.latestVersion);
-        this.lastSeenVersionSignal.set(this.latestVersion);
       } else {
+        // If user has seen this version before, just update the signal
         this.lastSeenVersionSignal.set(seen);
       }
     }
@@ -40,15 +49,15 @@ export class ChangelogService {
   unseenEntries = computed(() => {
     const seen = this.lastSeenVersionSignal();
     if (!seen) return [];
-    
+
     // Find index of the last seen version
     const seenIndex = CHANGELOG.findIndex(entry => entry.version === seen);
-    
+
     if (seenIndex === -1) {
       // If version is unrecognized/obsolete, show all entries
       return CHANGELOG;
     }
-    
+
     // Return all entries up to (but not including) the seen index
     return CHANGELOG.slice(0, seenIndex);
   });
@@ -67,7 +76,7 @@ export class ChangelogService {
 
   close() {
     this.isOpen.set(false);
-    
+
     // Mark as read: update localStorage and signal
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem('poker_last_seen_version', this.latestVersion);

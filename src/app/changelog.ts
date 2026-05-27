@@ -12,7 +12,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     "features": [
       "Implement release popover with new features since last visit",
       "Filter technical chores from user-facing changelog",
-      "Add deployment governance safety checks"
+      "Add deployment governance safety checks",
+      "Show changelog popover to returning users without version in localStorage"
     ],
     "fixes": [
       "Cancel button style",
