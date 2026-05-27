@@ -68,9 +68,9 @@ import { ToastService } from '../../services/toast.service';
                   <span>💡 Tip: Add Jira Link + Description</span>
                   <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
                 </div>
-                <p>You can now paste a Jira link followed by a space and a custom description, like:</p>
+                <p>You can paste a Jira link followed by a space and a custom description, like:</p>
                 <code>https://company.atlassian.net/browse/JIRA-1234 My custom task description</code>
-                <p>We'll extract the Jira link and use your text as the fallback summary!</p>
+                <p>If Jira is connected, we'll fetch the official summary from Jira. Otherwise, we'll use your custom text as the fallback summary!</p>
               </div>
             }
           </div>
