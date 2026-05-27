@@ -290,33 +290,63 @@ export class TaskListComponent implements OnInit {
     return '';
   }
 
-  async addTask() {
-    const desc = this.newTaskDescription().trim();
-    if (!desc) return;
+  parseTaskInput(input: string): { jiraKey: string; jiraUrl: string; remainingText: string } {
+    const trimmed = input.trim();
+    let jiraKey = '';
+    let jiraUrl = '';
+    let remainingText = trimmed;
 
-    let jiraMeta: any = undefined;
-    const jiraKey = this.getParsedIssueKey(desc);
+    // 1. Check if there is a Jira URL in the input (e.g. contains "/browse/KEY-123")
+    const browseMatch = trimmed.match(/(https?:\/\/[^\s]*\/browse\/([A-Za-z0-9]+-[0-9]+)[^\s]*)/i);
+    if (browseMatch) {
+      jiraUrl = browseMatch[1];
+      jiraKey = browseMatch[2].toUpperCase();
+      // Remove the URL from the description
+      remainingText = trimmed.replace(jiraUrl, '').replace(/\s+/g, ' ').trim();
+    } else {
+      // 2. Check if the first word/token matches a Jira key pattern (e.g. KEY-123)
+      const firstSpaceIdx = trimmed.indexOf(' ');
+      const firstToken = firstSpaceIdx !== -1 ? trimmed.substring(0, firstSpaceIdx).trim() : trimmed;
+      const keyMatch = firstToken.match(/^([A-Za-z0-9]+-[0-9]+)$/);
+      if (keyMatch) {
+        jiraKey = keyMatch[1].toUpperCase();
+        remainingText = firstSpaceIdx !== -1 ? trimmed.substring(firstSpaceIdx + 1).trim() : '';
+      }
+    }
+
+    return { jiraKey, jiraUrl, remainingText };
+  }
+
+  async addTask() {
+    const rawInput = this.newTaskDescription().trim();
+    if (!rawInput) return;
+
+    const parsed = this.parseTaskInput(rawInput);
 
     // Check for duplicates
-    if (jiraKey) {
-      if (this.tasks().some(t => t.jiraKey === jiraKey)) {
+    if (parsed.jiraKey) {
+      if (this.tasks().some(t => t.jiraKey === parsed.jiraKey)) {
         this.toastService.warning('This story is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
     } else {
-      if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
+      if (this.tasks().some(t => t.description.toLowerCase() === rawInput.toLowerCase())) {
         this.toastService.warning('This task is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
     }
 
-    if (jiraKey) {
+    let jiraMeta: any = undefined;
+
+    if (parsed.jiraKey) {
       const loadingId = Math.random().toString(36).substring(7);
       let cloudId = this.selectedJiraSite();
-      if (desc.includes('.atlassian.net')) {
-        const match = desc.match(/https?:\/\/([^/]+)/);
+      
+      const urlToUse = parsed.jiraUrl || rawInput.split(' ')[0];
+      if (urlToUse.includes('.atlassian.net')) {
+        const match = urlToUse.match(/https?:\/\/([^/]+)/);
         if (match && match[1]) {
           const domain = match[1].toLowerCase();
           const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
@@ -324,23 +354,23 @@ export class TaskListComponent implements OnInit {
         }
       }
 
-      const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
-      const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
+      const defaultDomain = urlToUse.includes('.atlassian.net') ? urlToUse.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
+      const jiraUrl = parsed.jiraUrl || `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${parsed.jiraKey}`;
 
       jiraMeta = {
-        jiraKey,
-        jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
+        jiraKey: parsed.jiraKey,
+        jiraSummary: parsed.remainingText || (this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary'),
         jiraUrl
       };
 
       if (this.jiraAuth.accessToken()) {
-        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
+        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey: parsed.jiraKey, jiraUrl }]);
         this.newTaskDescription.set('');
 
         try {
           if (cloudId) {
-            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
-            jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
+            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, parsed.jiraKey));
+            jiraMeta.jiraSummary = issue.fields?.summary || parsed.remainingText || 'No summary';
           }
         } catch (e: any) {
           console.error('Failed to auto-fetch Jira details', e);
@@ -358,7 +388,7 @@ export class TaskListComponent implements OnInit {
     }
 
     try {
-      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : desc;
+      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : rawInput;
       await this.gameService.addTask(this.roomId(), finalDesc, jiraMeta);
     } catch (e) {
       console.error('Failed to add task', e);
