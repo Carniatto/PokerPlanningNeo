@@ -177,18 +177,24 @@ input::placeholder {
 }
 
 .btn-neo:focus,
-.btn-neo-primary:focus {
+.btn-neo-primary:focus,
+.btn-neo-secondary:focus,
+.btn-cancel:focus {
   outline: none;
 }
 
 .btn-neo:focus-visible,
-.btn-neo-primary:focus-visible {
+.btn-neo-primary:focus-visible,
+.btn-neo-secondary:focus-visible,
+.btn-cancel:focus-visible {
   outline: 2px solid var(--neon-blue);
   outline-offset: 2px;
 }
 
 .btn-neo-primary:disabled,
-.btn-neo:disabled {
+.btn-neo:disabled,
+.btn-neo-secondary:disabled,
+.btn-cancel:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   filter: grayscale(1);
@@ -225,12 +231,33 @@ input::placeholder {
   transform: translateY(0);
 }
 
-.btn-neo-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  filter: grayscale(1);
-  transform: none;
-  box-shadow: none;
+.btn-cancel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (hover: hover) {
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+  }
+}
+
+.btn-cancel:active {
+  transform: translateY(0);
 }
 
 /* Custom Scrollbar */
