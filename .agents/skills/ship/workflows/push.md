@@ -3,12 +3,13 @@
 This stage merges the feature branch into the `main` branch of the root repository and pushes the changes to the remote origin.
 
 ## Process
-1. Check if the root repository has uncommitted changes. If yes, stash them to keep the branch checkout clean.
-2. Check out the `main` branch at the repository root.
-3. Pull the latest commits from the remote `main` branch.
-4. Merge the feature branch into `main`.
-5. Push `main` to `origin/main`.
-6. Restore any stashed changes in the root repository.
+1. **Approval Verification**: Verify that the `--approve` flag is present, or check if the terminal is interactive (TTY) to prompt the user. Exit immediately if not approved.
+2. Check if the root repository has uncommitted changes. If yes, stash them to keep the branch checkout clean.
+3. Check out the `main` branch at the repository root.
+4. Pull the latest commits from the remote `main` branch.
+5. Merge the feature branch into `main`.
+6. Push `main` to `origin/main`.
+7. Restore any stashed changes in the root repository.
 
 ## Commands
 * Checkout main:

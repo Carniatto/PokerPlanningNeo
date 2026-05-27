@@ -35,6 +35,7 @@ const flags = {
   cleanup: args.includes("--cleanup"),
   monitor: args.includes("--monitor"),
   only: args.includes("--only"),
+  approve: args.includes("--approve"),
   message: (() => {
     const idx = args.findIndex(a => a === "--message" || a === "-m");
     return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : undefined;
@@ -57,6 +58,7 @@ Options:
   --test             Run tests (vitest + playwright)
   --no-test          Skip running tests
   --push             Merge feature branch to main and push
+  --approve          Approve the merge/push to main (bypasses TTY check)
   --cleanup          Remove worktree, delete local/remote branches, release port
   --monitor          Monitor the CI/CD deployment on main
   --only             Only execute the specified steps (do not run full sequence)
@@ -330,6 +332,20 @@ if ((runAll && !flags.noTest) || flags.test) {
 let mergeTimestamp = Date.now();
 if (runAll || flags.push) {
   console.log("\n--- [4/6] Merging and Pushing to Main ---");
+  
+  if (!flags.approve) {
+    const isInteractive = process.stdin.isTTY || process.stdout.isTTY;
+    if (isInteractive) {
+      const answer = prompt("⚠️ CRITICAL: You are about to merge and push to production main branch. Do you want to proceed? (yes/no):");
+      if (answer?.trim().toLowerCase() !== "yes") {
+        console.error("❌ Aborted: Push to main cancelled by user.");
+        process.exit(1);
+      }
+    } else {
+      console.error("❌ Error: Push to main requires explicit approval. Run in an interactive terminal or pass the --approve flag.");
+      process.exit(1);
+    }
+  }
   
   // Check if main root directory is dirty
   const rootStatus = runCmd(["git", "status", "--porcelain"], ROOT_PATH, false);

@@ -13,10 +13,15 @@ All deterministic execution steps are handled by the Bun-based automation script
 
 ### Running the Entire Workflow
 When the user types `/ship` or asks to deploy/merge a worktree:
+
+> [!CAUTION]
+> **GOVERNANCE RULE FOR AGENTS**: You (the AI Agent) are strictly forbidden from performing Phase 4 (Push to main) or passing the `--approve` flag unless you have first explicitly asked the user in chat: *"Do you approve merging and deploying to main?"* and received an explicit confirmation of approval. If they have approved it, append the `--approve` flag.
+
 1. Identify the worktree directory name or branch.
-2. Run the automation script:
+2. Confirm approval with the user in the chat interface.
+3. Run the automation script:
    ```bash
-   bun .agents/skills/ship/tools/ship.ts
+   bun .agents/skills/ship/tools/ship.ts --approve
    ```
 
 ### Running Specific Phases
@@ -25,7 +30,7 @@ The script supports granular execution. Translate the user request to appropriat
 - **Sync feature branch with main**: `bun .agents/skills/ship/tools/ship.ts --sync` (or add `--rebase` for rebasing)
 - **Run tests**: `bun .agents/skills/ship/tools/ship.ts --test`
 - **Skip tests**: `bun .agents/skills/ship/tools/ship.ts --no-test`
-- **Merge and push to remote**: `bun .agents/skills/ship/tools/ship.ts --push`
+- **Merge and push to remote**: `bun .agents/skills/ship/tools/ship.ts --push --approve` (always requires `--approve` for non-interactive agent execution)
 - **Clean up resources**: `bun .agents/skills/ship/tools/ship.ts --cleanup` (deletes worktree, local/remote branch, and frees ports)
 - **Monitor CI/CD deployment**: `bun .agents/skills/ship/tools/ship.ts --monitor`
 
