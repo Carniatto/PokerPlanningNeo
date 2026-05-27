@@ -65,11 +65,11 @@ import { ToastService } from '../../services/toast.service';
             @if (showFeatureTip() && isInputFocused()) {
               <div class="feature-tip-popover glass-panel">
                 <div class="tip-header">
-                  <span>💡 Tip: Add Jira URL + Description</span>
+                  <span>💡 Tip: Add Jira Link + Description</span>
                   <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
                 </div>
-                <p>You can now paste a Jira link or key followed by a space and a custom description, like:</p>
-                <code>JIRA-1234 My custom task description</code>
+                <p>You can now paste a Jira link followed by a space and a custom description, like:</p>
+                <code>https://company.atlassian.net/browse/JIRA-1234 My custom task description</code>
                 <p>We'll extract the Jira link and use your text as the fallback summary!</p>
               </div>
             }
