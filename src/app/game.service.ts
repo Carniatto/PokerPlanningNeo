@@ -584,6 +584,14 @@ export class GameService {
         }
     }
 
+    async reorderTasks(roomId: string, tasks: Task[]) {
+        const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
+        await this.runInContext(() => updateDoc(roomRef, {
+            tasks: tasks,
+            lastActiveAt: Date.now()
+        }));
+    }
+
     async updateTaskEstimate(roomId: string, taskId: string, estimate: string) {
         const roomRef = this.runInContext(() => doc(this.firestore, 'rooms', roomId));
         const roomSnap = await this.runInContext(() => getDoc(roomRef));

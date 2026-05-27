@@ -49,6 +49,10 @@ firebase-debug.log
 # Agent files
 .agent/
 
+# Git Worktrees
+/wt-*/
+/worktrees/
+
 # Firebase debug
 firestore-debug.log
 
