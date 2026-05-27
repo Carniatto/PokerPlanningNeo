@@ -1,6 +1,49 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join, basename } from "path";
 
+/**
+ * Keywords that flag a commit as a technical/infrastructure chore rather than
+ * a user-facing feature or bug fix. Matching items are excluded from the
+ * changelog that users see in the release-notes popover.
+ */
+const CHORE_PATTERNS: RegExp[] = [
+  /\bangular\s+\d+/i,           // Angular version upgrades
+  /\bupgrade\b.*\bangular\b/i,
+  /\bmigrat/i,                  // migrations (gen 2, firestore, etc.)
+  /\bgen 2\b/i,
+  /\bnode runtime\b/i,
+  /\bci\/cd\b/i,
+  /\bci\s+workflow\b/i,
+  /\bworkflow push\b/i,
+  /\bdeployment.*workflow\b/i,
+  /\bauto.?deploy\b/i,
+  /\bcloud functions\b/i,
+  /\bsetup.*deploy/i,
+  /\bhosting.*deploy/i,
+  /\bfirebase hosting\b/i,
+  /\bpnpm.*npm\b/i,             // package manager switches
+  /\blockfile/i,
+  /\btsconfig/i,
+  /\bvitest\b/i,
+  /\bplaywright\b/i,
+  /\bzoneless\b/i,
+  /\bzone\.js\b/i,
+  /\boauth return\b/i,
+  /\bcross.?domain redirect\b/i,
+  /\bfirebase project\b/i,
+  /\bsite for deploy\b/i,
+  /\bprovide ?router\b/i,
+  /\bsignal forms api\b/i,
+  /\bsave lockfiles\b/i,
+  /\borgon\b/i,
+  /\beurope.?west\b/i,
+];
+
+/** Returns true if the message describes a technical chore that should not appear in the user changelog. */
+function isChore(message: string): boolean {
+  return CHORE_PATTERNS.some(re => re.test(message));
+}
+
 // Main repository root path
 const ROOT_PATH = "/Users/mateuscarniatto/dev/PokerPlanningNeo";
 
@@ -170,10 +213,17 @@ if (runAll || flags.commit) {
         
         if (/^feat(\([a-z0-9-]+\))?:/.test(msg)) {
           const cleanMsg = msg.replace(/^feat(\([a-z0-9-]+\))?:\s*/, "");
-          features.push(cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1));
+          const formatted = cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1);
+          // Skip technical/infrastructure chores — they are not user-facing
+          if (!isChore(formatted)) {
+            features.push(formatted);
+          }
         } else if (/^fix(\([a-z0-9-]+\))?:/.test(msg)) {
           const cleanMsg = msg.replace(/^fix(\([a-z0-9-]+\))?:\s*/, "");
-          fixes.push(cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1));
+          const formatted = cleanMsg.charAt(0).toUpperCase() + cleanMsg.slice(1);
+          if (!isChore(formatted)) {
+            fixes.push(formatted);
+          }
         }
       }
       
