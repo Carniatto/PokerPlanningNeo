@@ -15,7 +15,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Implement retroactive log script and CalVer daily grouping"
     ],
     "fixes": [
-      "Cancel button style"
+      "Cancel button style",
+      "Update secondary badge tooltip to No link provided"
     ]
   },
   {

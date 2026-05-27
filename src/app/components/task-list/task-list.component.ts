@@ -109,7 +109,7 @@ import { ToastService } from '../../services/toast.service';
                                 {{ lTask.jiraKey }}
                             </a>
                         } @else {
-                            <span class="jira-key-badge-secondary">
+                            <span class="jira-key-badge-secondary" title="No link provided">
                                 {{ lTask.jiraKey }}
                             </span>
                         }
@@ -153,7 +153,7 @@ import { ToastService } from '../../services/toast.service';
                                     {{ task.jiraKey }}
                                 </a>
                             } @else {
-                                <span class="jira-key-badge-secondary" title="Jira not connected (key only)">
+                                <span class="jira-key-badge-secondary" title="No link provided">
                                     {{ task.jiraKey }}
                                 </span>
                             }
