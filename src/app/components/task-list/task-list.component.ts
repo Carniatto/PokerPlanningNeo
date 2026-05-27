@@ -53,6 +53,8 @@ import { ToastService } from '../../services/toast.service';
                 type="text" 
                 [(ngModel)]="newTaskDescription" 
                 (keyup.enter)="addTask()"
+                (focus)="isInputFocused.set(true)"
+                (blur)="onInputBlur()"
                 placeholder="Jira URL/key [description] or plain task..." 
                 class="add-task-input"
               />
@@ -60,14 +62,14 @@ import { ToastService } from '../../services/toast.service';
                 Add Task
               </button>
             </div>
-            @if (showFeatureTip()) {
+            @if (showFeatureTip() && isInputFocused()) {
               <div class="feature-tip-popover glass-panel">
                 <div class="tip-header">
                   <span>💡 Tip: Add Jira URL + Description</span>
                   <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
                 </div>
                 <p>You can now paste a Jira link or key followed by a space and a custom description, like:</p>
-                <code>COA-3502 My custom task description</code>
+                <code>JIRA-1234 My custom task description</code>
                 <p>We'll extract the Jira link and use your text as the fallback summary!</p>
               </div>
             }
@@ -238,6 +240,7 @@ export class TaskListComponent implements OnInit {
   showJiraSettings = signal(false);
   isSyncingAll = signal(false);
   showFeatureTip = signal(localStorage.getItem('NEO_TASK_INPUT_TIP_SEEN') !== 'true');
+  isInputFocused = signal(false);
 
   constructor() {
     effect(() => {
@@ -259,6 +262,12 @@ export class TaskListComponent implements OnInit {
     this.jiraApi.getAccessibleResources().subscribe({
         next: (data) => {
             this.jiraSites.set(data);
+            const selectedId = this.selectedJiraSite();
+            const selectedSite = data.find(s => s.id === selectedId) || data[0];
+            if (selectedSite && selectedSite.url) {
+                const domain = selectedSite.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+                localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
+            }
         },
         error: (err) => {
             console.error('Failed to load Jira sites', err);
@@ -275,6 +284,11 @@ export class TaskListComponent implements OnInit {
   updateJiraSite(siteId: string) {
     this.selectedJiraSite.set(siteId);
     localStorage.setItem('JIRA_SELECTED_SITE', siteId);
+    const site = this.jiraSites().find(s => s.id === siteId);
+    if (site && site.url) {
+        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
+    }
   }
 
   updateJiraSpField(field: string) {
@@ -290,6 +304,13 @@ export class TaskListComponent implements OnInit {
   dismissFeatureTip() {
     localStorage.setItem('NEO_TASK_INPUT_TIP_SEEN', 'true');
     this.showFeatureTip.set(false);
+  }
+
+  onInputBlur() {
+    // Delay slightly to let clicks on the close button register
+    setTimeout(() => {
+      this.isInputFocused.set(false);
+    }, 200);
   }
 
   getEstimateColorClass(value: string): string {
@@ -387,17 +408,21 @@ export class TaskListComponent implements OnInit {
       let cloudId = this.selectedJiraSite();
       
       const urlToUse = parsed.jiraUrl || rawInput.split(' ')[0];
+      let domainFromUrl = '';
       if (urlToUse.includes('.atlassian.net')) {
         const match = urlToUse.match(/https?:\/\/([^/]+)/);
         if (match && match[1]) {
-          const domain = match[1].toLowerCase();
-          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
+          domainFromUrl = match[1].toLowerCase();
+          localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domainFromUrl);
+          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domainFromUrl));
           if (matchingSite) cloudId = matchingSite.id;
         }
       }
 
-      const defaultDomain = urlToUse.includes('.atlassian.net') ? urlToUse.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
-      const jiraUrl = parsed.jiraUrl || `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${parsed.jiraKey}`;
+      const fallbackDomain = localStorage.getItem('NEO_LAST_JIRA_DOMAIN') || 'domain.atlassian.net';
+      let siteUrl = this.jiraSites().find(s => s.id === cloudId)?.url || domainFromUrl || fallbackDomain;
+      siteUrl = siteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+      const jiraUrl = parsed.jiraUrl || `https://${siteUrl}/browse/${parsed.jiraKey}`;
 
       jiraMeta = {
         jiraKey: parsed.jiraKey,

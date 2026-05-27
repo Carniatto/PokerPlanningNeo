@@ -529,78 +529,14 @@
   cursor: not-allowed;
 }
 
-/* Feature Tip Popover Styles */
-.add-task-form-wrapper {
-  position: relative;
-}
-
-.feature-tip-popover {
-  margin-top: 0.75rem;
-  width: 100%;
-  max-width: 500px;
-  background: rgba(17, 34, 64, 0.5);
-  border: 1px solid var(--neon-blue, #00f3ff);
-  border-radius: 8px;
-  padding: 0.85rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  font-size: 0.8rem;
-  color: var(--text-secondary, #a8b2d1);
-  animation: popover-fade-in 0.3s ease-out;
-  box-sizing: border-box;
-}
-
-.feature-tip-popover p {
-  margin: 0.5rem 0;
-  line-height: 1.4;
-}
-
-.feature-tip-popover code {
-  display: block;
-  background: rgba(2, 12, 27, 0.8);
-  padding: 0.4rem;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--neon-blue, #00f3ff);
-  font-family: monospace;
-  margin: 0.5rem 0;
-  word-break: break-all;
-}
-
-.tip-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 700;
-  color: white;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 0.4rem;
-}
-
-.btn-close-tip {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: color 0.2s;
-  padding: 0;
-  line-height: 1;
-}
-
-.btn-close-tip:hover {
-  color: white;
-}
-
-@keyframes popover-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+.add-task-form-wrapper{position:relative}
+.feature-tip-popover{position:absolute;top:calc(100% + 8px);left:0;width:100%;max-width:500px;background:#112240;border:1px solid #00f3ff;border-radius:8px;padding:.85rem;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:110;font-size:.8rem;color:#a8b2d1;animation:popover-fade-in .2s ease-out;backdrop-filter:blur(12px);box-sizing:border-box}
+.feature-tip-popover p{margin:.5rem 0;line-height:1.4}
+.feature-tip-popover code{display:block;background:#020c1bcc;padding:.4rem;border-radius:4px;border:1px solid #ffffff0d;color:#00f3ff;font-family:monospace;margin:.5rem 0;word-break:break-all}
+.tip-header{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#fff;border-bottom:1px solid #ffffff1a;padding-bottom:.4rem}
+.btn-close-tip{background:none;border:none;color:rgba(255,255,255,.5);font-size:1.1rem;cursor:pointer;transition:color .2s;padding:0;line-height:1}
+.btn-close-tip:hover{color:#fff}
+@keyframes popover-fade-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
 /* Drag and Drop Styles */
 .col-drag {
