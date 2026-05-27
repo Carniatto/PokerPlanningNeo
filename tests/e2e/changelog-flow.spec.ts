@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { CHANGELOG } from '../../src/app/changelog';
+
+const latestVersion = CHANGELOG[0].version;
 
 test.describe('Changelog and Versioning Flow', () => {
     test.beforeEach(async ({ page }) => {
@@ -14,7 +17,7 @@ test.describe('Changelog and Versioning Flow', () => {
         // Verify version badge is visible in header
         const badgeBtn = page.locator('.version-badge-btn');
         await expect(badgeBtn).toBeVisible();
-        await expect(badgeBtn).toContainText('v0.1.0');
+        await expect(badgeBtn).toContainText(`v${latestVersion}`);
 
         // Since it's a first time user, no notification dot should be present
         const badgeDot = page.locator('.badge-dot');
@@ -22,7 +25,7 @@ test.describe('Changelog and Versioning Flow', () => {
 
         // Local storage should have been set to latest version
         const lastSeen = await page.evaluate(() => localStorage.getItem('poker_last_seen_version'));
-        expect(lastSeen).toBe('0.1.0');
+        expect(lastSeen).toBe(latestVersion);
 
         // Click version badge to open history manually
         await badgeBtn.click();
@@ -33,9 +36,9 @@ test.describe('Changelog and Versioning Flow', () => {
         await expect(modal.locator('h2')).toContainText('Version History');
 
         // Verify features and fixes list
-        await expect(modal.locator('.version-number')).toContainText('v0.1.0');
-        await expect(modal.locator('.text-neon')).toContainText('New Features');
-        await expect(modal.locator('.text-purple')).toContainText('Bug Fixes');
+        await expect(modal.locator('.version-number').first()).toContainText(`v${latestVersion}`);
+        await expect(modal.locator('.text-neon').first()).toContainText('New Features');
+        await expect(modal.locator('.text-purple').first()).toContainText('Bug Fixes');
 
         // Close the modal
         await modal.locator('button:has-text("Got it!")').click();
@@ -68,6 +71,6 @@ test.describe('Changelog and Versioning Flow', () => {
 
         // Local storage should be updated to latest
         const lastSeen = await page.evaluate(() => localStorage.getItem('poker_last_seen_version'));
-        expect(lastSeen).toBe('0.1.0');
+        expect(lastSeen).toBe(latestVersion);
     });
 });
