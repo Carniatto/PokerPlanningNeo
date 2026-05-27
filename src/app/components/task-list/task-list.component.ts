@@ -104,8 +104,8 @@ import { ToastService } from '../../services/toast.service';
                   }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
-                        @if (lTask.jiraUrl) {
-                            <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                        @if (getJiraBadgeUrl(lTask)) {
+                            <a [href]="getJiraBadgeUrl(lTask)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
                                 {{ lTask.jiraKey }}
                             </a>
                         } @else {
@@ -148,8 +148,8 @@ import { ToastService } from '../../services/toast.service';
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
-                            @if (task.jiraUrl) {
-                                <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                            @if (getJiraBadgeUrl(task)) {
+                                <a [href]="getJiraBadgeUrl(task)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
                                     {{ task.jiraKey }}
                                 </a>
                             } @else {
@@ -390,6 +390,26 @@ export class TaskListComponent implements OnInit {
     }
 
     return { jiraKey, jiraUrl, remainingText };
+  }
+
+  getJiraBadgeUrl(task: { jiraKey?: string; jiraUrl?: string }): string | null {
+    if (task.jiraUrl) return task.jiraUrl;
+    if (this.jiraAuth.accessToken() && task.jiraKey) {
+      // First try to find the URL of the selected site
+      const selectedId = this.selectedJiraSite();
+      const site = this.jiraSites().find(s => s.id === selectedId);
+      if (site && site.url) {
+        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        return `https://${domain}/browse/${task.jiraKey}`;
+      }
+
+      // Fallback to NEO_LAST_JIRA_DOMAIN from localStorage
+      const lastDomain = localStorage.getItem('NEO_LAST_JIRA_DOMAIN');
+      if (lastDomain) {
+        return `https://${lastDomain}/browse/${task.jiraKey}`;
+      }
+    }
+    return null;
   }
 
   async addTask() {
