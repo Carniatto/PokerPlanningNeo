@@ -47,17 +47,32 @@ import { ToastService } from '../../services/toast.service';
           }
         </div>
         @if (isHost()) {
-          <div class="add-task-form">
-            <input 
-              type="text" 
-              [(ngModel)]="newTaskDescription" 
-              (keyup.enter)="addTask()"
-              placeholder="Jira URL or Task description..." 
-              class="add-task-input"
-            />
-            <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
-              Add Task
-            </button>
+          <div class="add-task-form-wrapper">
+            <div class="add-task-form">
+              <input 
+                type="text" 
+                [(ngModel)]="newTaskDescription" 
+                (keyup.enter)="addTask()"
+                (focus)="isInputFocused.set(true)"
+                (blur)="onInputBlur()"
+                placeholder="Jira URL/key [description] or plain task..." 
+                class="add-task-input"
+              />
+              <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
+                Add Task
+              </button>
+            </div>
+            @if (showFeatureTip() && isInputFocused()) {
+              <div class="feature-tip-popover glass-panel">
+                <div class="tip-header">
+                  <span>💡 Tip: Add Jira Link + Description</span>
+                  <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
+                </div>
+                <p>You can paste a Jira link followed by a space and a custom description, like:</p>
+                <code>https://company.atlassian.net/browse/JIRA-1234 My custom task description</code>
+                <p>If Jira is connected, we'll fetch the official summary from Jira. Otherwise, we'll use your custom text as the fallback summary!</p>
+              </div>
+            }
           </div>
         }
       </div>
@@ -89,9 +104,15 @@ import { ToastService } from '../../services/toast.service';
                   }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
-                        <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                            {{ lTask.jiraKey }}
-                        </a>
+                        @if (getJiraBadgeUrl(lTask)) {
+                            <a [href]="getJiraBadgeUrl(lTask)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                                {{ lTask.jiraKey }}
+                            </a>
+                        } @else {
+                            <span class="jira-key-badge-secondary">
+                                {{ lTask.jiraKey }}
+                            </span>
+                        }
                         <span class="jira-summary skeleton-text"></span>
                     </div>
                   </td>
@@ -127,9 +148,15 @@ import { ToastService } from '../../services/toast.service';
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
-                            <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                                {{ task.jiraKey }}
-                            </a>
+                            @if (getJiraBadgeUrl(task)) {
+                                <a [href]="getJiraBadgeUrl(task)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                                    {{ task.jiraKey }}
+                                </a>
+                            } @else {
+                                <span class="jira-key-badge-secondary" title="Jira not connected (key only)">
+                                    {{ task.jiraKey }}
+                                </span>
+                            }
                             <span class="jira-summary" [class.skeleton-text]="refreshingTasks().has(task.id)" [title]="task.jiraSummary">
                                 {{ refreshingTasks().has(task.id) ? '' : task.jiraSummary }}
                             </span>
@@ -208,7 +235,7 @@ export class TaskListComponent implements OnInit {
   selectTask = output<Task | null>();
 
   newTaskDescription = signal('');
-  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl: string }[]>([]);
+  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl?: string }[]>([]);
   refreshingTasks = signal<Set<string>>(new Set());
   estimateOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
@@ -224,6 +251,8 @@ export class TaskListComponent implements OnInit {
   jiraSpField = signal<string>(localStorage.getItem('JIRA_SP_FIELD') || 'customfield_10016');
   showJiraSettings = signal(false);
   isSyncingAll = signal(false);
+  showFeatureTip = signal(localStorage.getItem('NEO_TASK_INPUT_TIP_SEEN') !== 'true');
+  isInputFocused = signal(false);
 
   constructor() {
     effect(() => {
@@ -245,6 +274,12 @@ export class TaskListComponent implements OnInit {
     this.jiraApi.getAccessibleResources().subscribe({
         next: (data) => {
             this.jiraSites.set(data);
+            const selectedId = this.selectedJiraSite();
+            const selectedSite = data.find(s => s.id === selectedId) || data[0];
+            if (selectedSite && selectedSite.url) {
+                const domain = selectedSite.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+                localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
+            }
         },
         error: (err) => {
             console.error('Failed to load Jira sites', err);
@@ -261,6 +296,11 @@ export class TaskListComponent implements OnInit {
   updateJiraSite(siteId: string) {
     this.selectedJiraSite.set(siteId);
     localStorage.setItem('JIRA_SELECTED_SITE', siteId);
+    const site = this.jiraSites().find(s => s.id === siteId);
+    if (site && site.url) {
+        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
+    }
   }
 
   updateJiraSpField(field: string) {
@@ -271,6 +311,18 @@ export class TaskListComponent implements OnInit {
   disconnectJira() {
     this.jiraAuth.logout();
     this.showJiraSettings.set(false);
+  }
+
+  dismissFeatureTip() {
+    localStorage.setItem('NEO_TASK_INPUT_TIP_SEEN', 'true');
+    this.showFeatureTip.set(false);
+  }
+
+  onInputBlur() {
+    // Delay slightly to let clicks on the close button register
+    setTimeout(() => {
+      this.isInputFocused.set(false);
+    }, 200);
   }
 
   getEstimateColorClass(value: string): string {
@@ -313,57 +365,120 @@ export class TaskListComponent implements OnInit {
     return '';
   }
 
-  async addTask() {
-    const desc = this.newTaskDescription().trim();
-    if (!desc) return;
+  parseTaskInput(input: string): { jiraKey: string; jiraUrl: string; remainingText: string } {
+    const trimmed = input.trim();
+    let jiraKey = '';
+    let jiraUrl = '';
+    let remainingText = trimmed;
 
-    let jiraMeta: any = undefined;
-    const jiraKey = this.getParsedIssueKey(desc);
+    // 1. Check if there is a Jira URL in the input (e.g. contains "/browse/KEY-123")
+    const browseMatch = trimmed.match(/(https?:\/\/[^\s]*\/browse\/([A-Za-z0-9]+-[0-9]+)[^\s]*)/i);
+    if (browseMatch) {
+      jiraUrl = browseMatch[1];
+      jiraKey = browseMatch[2].toUpperCase();
+      // Remove the URL from the description
+      remainingText = trimmed.replace(jiraUrl, '').replace(/\s+/g, ' ').trim();
+    } else {
+      // 2. Check if the first word/token matches a Jira key pattern (e.g. KEY-123)
+      const firstSpaceIdx = trimmed.indexOf(' ');
+      const firstToken = firstSpaceIdx !== -1 ? trimmed.substring(0, firstSpaceIdx).trim() : trimmed;
+      const keyMatch = firstToken.match(/^([A-Za-z0-9]+-[0-9]+)$/);
+      if (keyMatch) {
+        jiraKey = keyMatch[1].toUpperCase();
+        remainingText = firstSpaceIdx !== -1 ? trimmed.substring(firstSpaceIdx + 1).trim() : '';
+      }
+    }
+
+    return { jiraKey, jiraUrl, remainingText };
+  }
+
+  getJiraBadgeUrl(task: { jiraKey?: string; jiraUrl?: string }): string | null {
+    if (task.jiraUrl) return task.jiraUrl;
+    if (this.jiraAuth.accessToken() && task.jiraKey) {
+      // First try to find the URL of the selected site
+      const selectedId = this.selectedJiraSite();
+      const site = this.jiraSites().find(s => s.id === selectedId);
+      if (site && site.url) {
+        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+        return `https://${domain}/browse/${task.jiraKey}`;
+      }
+
+      // Fallback to NEO_LAST_JIRA_DOMAIN from localStorage
+      const lastDomain = localStorage.getItem('NEO_LAST_JIRA_DOMAIN');
+      if (lastDomain) {
+        return `https://${lastDomain}/browse/${task.jiraKey}`;
+      }
+    }
+    return null;
+  }
+
+  async addTask() {
+    const rawInput = this.newTaskDescription().trim();
+    if (!rawInput) return;
+
+    const parsed = this.parseTaskInput(rawInput);
 
     // Check for duplicates
-    if (jiraKey) {
-      if (this.tasks().some(t => t.jiraKey === jiraKey)) {
+    if (parsed.jiraKey) {
+      if (this.tasks().some(t => t.jiraKey === parsed.jiraKey)) {
         this.toastService.warning('This story is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
     } else {
-      if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
+      if (this.tasks().some(t => t.description.toLowerCase() === rawInput.toLowerCase())) {
         this.toastService.warning('This task is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
     }
 
-    if (jiraKey) {
+    let jiraMeta: any = undefined;
+
+    if (parsed.jiraKey) {
       const loadingId = Math.random().toString(36).substring(7);
       let cloudId = this.selectedJiraSite();
-      if (desc.includes('.atlassian.net')) {
-        const match = desc.match(/https?:\/\/([^/]+)/);
+      
+      const urlToUse = parsed.jiraUrl || rawInput.split(' ')[0];
+      let domainFromUrl = '';
+      if (urlToUse.includes('.atlassian.net')) {
+        const match = urlToUse.match(/https?:\/\/([^/]+)/);
         if (match && match[1]) {
-          const domain = match[1].toLowerCase();
-          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
+          domainFromUrl = match[1].toLowerCase();
+          localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domainFromUrl);
+          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domainFromUrl));
           if (matchingSite) cloudId = matchingSite.id;
         }
       }
 
-      const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
-      const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
+      // Only set jiraUrl if we have a connection or if a full link was typed
+      let jiraUrl: string | undefined = undefined;
+      if (parsed.jiraUrl) {
+        jiraUrl = parsed.jiraUrl;
+      } else {
+        const connectedSiteUrl = this.jiraSites().find(s => s.id === cloudId)?.url;
+        if (connectedSiteUrl) {
+          const domain = connectedSiteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+          jiraUrl = `https://${domain}/browse/${parsed.jiraKey}`;
+        }
+      }
 
       jiraMeta = {
-        jiraKey,
-        jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
-        jiraUrl
+        jiraKey: parsed.jiraKey,
+        jiraSummary: parsed.remainingText || (this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary')
       };
+      if (jiraUrl) {
+        jiraMeta.jiraUrl = jiraUrl;
+      }
 
       if (this.jiraAuth.accessToken()) {
-        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
+        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey: parsed.jiraKey, jiraUrl }]);
         this.newTaskDescription.set('');
 
         try {
           if (cloudId) {
-            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
-            jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
+            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, parsed.jiraKey));
+            jiraMeta.jiraSummary = issue.fields?.summary || parsed.remainingText || 'No summary';
           }
         } catch (e: any) {
           console.error('Failed to auto-fetch Jira details', e);
@@ -381,7 +496,7 @@ export class TaskListComponent implements OnInit {
     }
 
     try {
-      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : desc;
+      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : rawInput;
       await this.gameService.addTask(this.roomId(), finalDesc, jiraMeta);
     } catch (e) {
       console.error('Failed to add task', e);
