@@ -46,17 +46,30 @@ import { ToastService } from '../../services/toast.service';
           }
         </div>
         @if (isHost()) {
-          <div class="add-task-form">
-            <input 
-              type="text" 
-              [(ngModel)]="newTaskDescription" 
-              (keyup.enter)="addTask()"
-              placeholder="Jira URL or Task description..." 
-              class="add-task-input"
-            />
-            <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
-              Add Task
-            </button>
+          <div class="add-task-form-wrapper">
+            <div class="add-task-form">
+              <input 
+                type="text" 
+                [(ngModel)]="newTaskDescription" 
+                (keyup.enter)="addTask()"
+                placeholder="Jira URL/key [description] or plain task..." 
+                class="add-task-input"
+              />
+              <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
+                Add Task
+              </button>
+            </div>
+            @if (showFeatureTip()) {
+              <div class="feature-tip-popover glass-panel">
+                <div class="tip-header">
+                  <span>💡 Tip: Add Jira URL + Description</span>
+                  <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
+                </div>
+                <p>You can now paste a Jira link or key followed by a space and a custom description, like:</p>
+                <code>COA-3502 My custom task description</code>
+                <p>We'll extract the Jira link and use your text as the fallback summary!</p>
+              </div>
+            }
           </div>
         }
       </div>
@@ -201,6 +214,7 @@ export class TaskListComponent implements OnInit {
   jiraSpField = signal<string>(localStorage.getItem('JIRA_SP_FIELD') || 'customfield_10016');
   showJiraSettings = signal(false);
   isSyncingAll = signal(false);
+  showFeatureTip = signal(localStorage.getItem('NEO_TASK_INPUT_TIP_SEEN') !== 'true');
 
   constructor() {
     effect(() => {
@@ -248,6 +262,11 @@ export class TaskListComponent implements OnInit {
   disconnectJira() {
     this.jiraAuth.logout();
     this.showJiraSettings.set(false);
+  }
+
+  dismissFeatureTip() {
+    localStorage.setItem('NEO_TASK_INPUT_TIP_SEEN', 'true');
+    this.showFeatureTip.set(false);
   }
 
   getEstimateColorClass(value: string): string {
