@@ -1,0 +1,58 @@
+@if (changelogService.isOpen()) {
+  <div class="changelog-overlay" (click)="close()">
+    <div class="changelog-modal glass-panel" (click)="$event.stopPropagation()">
+      <div class="changelog-header-glow"></div>
+      
+      <button class="close-btn" (click)="close()" aria-label="Close changelog">
+        <span class="material-icons">close</span>
+      </button>
+
+      <h2>{{ title() }}</h2>
+      
+      <div class="entries-list">
+        @for (entry of displayedEntries(); track entry.version) {
+          <div class="version-entry">
+            <div class="version-header">
+              <span class="version-number">v{{ entry.version }}</span>
+              <span class="version-date">{{ entry.date }}</span>
+            </div>
+            
+            @if (entry.features.length > 0) {
+              <div class="section-title text-neon">New Features</div>
+              <ul class="changelog-items">
+                @for (feat of entry.features; track feat) {
+                  <li>
+                    <span class="material-icons bullet bullet-feature">auto_awesome</span>
+                    <span class="item-text selectable-text">{{ feat }}</span>
+                  </li>
+                }
+              </ul>
+            }
+            
+            @if (entry.fixes && entry.fixes.length > 0) {
+              <div class="section-title text-purple">Bug Fixes</div>
+              <ul class="changelog-items">
+                @for (fix of entry.fixes; track fix) {
+                  <li>
+                    <span class="material-icons bullet bullet-fix">construction</span>
+                    <span class="item-text selectable-text">{{ fix }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <p>No new updates since your last visit.</p>
+          </div>
+        }
+      </div>
+      
+      <div class="modal-actions">
+        <button neo-button variant="primary" (click)="close()" autofocus>
+          Got it!
+        </button>
+      </div>
+    </div>
+  </div>
+}
