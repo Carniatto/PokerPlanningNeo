@@ -14,8 +14,9 @@ Welcome to the PokerPlanningNeo project. As an AI Agent working on this reposito
 - **Package Manager:** Use **PNPM** exclusively. (`pnpm install`, `pnpm add`). Do not use npm or yarn.
 - **Firebase Emulator:** Only ONE emulator instance should run at a time.
   - Before starting, verify if `firebase emulators:start --only dataconnect` is already running. If it is, reuse it.
-- **Merge Workflow:** ALWAYS sync with `main` before merging worktree changes.
-  - *Command:* `git fetch origin main && git merge origin/main` (or rebase). Ensure tests pass before pushing.
+- **Merge & Shipping Workflow:** ALWAYS sync with `main` before merging worktree changes. Ensure tests pass before pushing.
+  * To automate the process, run the `/ship` command (or execute `bun .agents/skills/ship/tools/ship.ts`).
+  * **Strict Governance**: You (the AI Agent) are strictly forbidden from passing the `--approve` flag to the script or pushing code to main unless you have explicitly asked the user in the chat: *"Do you approve merging and deploying to main?"* and received explicit confirmation.
 
 ## 2. Architecture & Code Standards
 
