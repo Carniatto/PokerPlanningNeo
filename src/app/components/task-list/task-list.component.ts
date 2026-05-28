@@ -1,14 +1,17 @@
 import { Component, input, output, signal, inject, computed, OnInit, effect } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { JiraAuthService } from '../../services/jira-auth.service';
 import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
 import { Task, GameService } from '../../game.service';
+import { ModalService } from '../../services/modal.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'neo-task-list',
-  imports: [FormsModule],
+  imports: [FormsModule, CdkDropList, CdkDrag, CdkDragHandle],
   template: `
     <div class="task-list-container glass-panel">
       <div class="list-header-row">
@@ -67,6 +70,9 @@ import { Task, GameService } from '../../game.service';
           <table class="tasks-table">
             <thead>
               <tr>
+                @if (isHost()) {
+                  <th class="col-drag"></th>
+                }
                 <th class="col-desc">TASK ID / NAME</th>
                 <th class="col-estimate text-right">ESTIMATE</th>
                 @if (isHost()) {
@@ -74,15 +80,18 @@ import { Task, GameService } from '../../game.service';
                 }
               </tr>
             </thead>
-            <tbody>
+            <tbody cdkDropList (cdkDropListDropped)="drop($event)">
               @for (lTask of loadingTasks(); track lTask.id) {
                 <tr class="loading-row">
+                  @if (isHost()) {
+                    <td class="col-drag"></td>
+                  }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
-                        <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                            {{ lTask.jiraKey }}
-                        </a>
-                        <span class="jira-summary skeleton-text"></span>
+                         <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                             {{ lTask.jiraKey }}
+                         </a>
+                         <span class="jira-summary skeleton-text"></span>
                     </div>
                   </td>
                   <td class="col-estimate text-right">
@@ -97,7 +106,23 @@ import { Task, GameService } from '../../game.service';
               @for (task of tasks(); track task.id) {
                 <tr [class.active]="isActive(task)" 
                     (click)="isHost() ? (isActive(task) ? selectForEstimation(null) : selectForEstimation(task)) : null" 
-                    [class.clickable]="isHost()">
+                    [class.clickable]="isHost()"
+                    cdkDrag
+                    [cdkDragDisabled]="!isHost()">
+                  @if (isHost()) {
+                    <td class="col-drag" (click)="$event.stopPropagation()">
+                      <div class="drag-handle" cdkDragHandle title="Drag to reorder">
+                        <svg width="12" height="18" viewBox="0 0 12 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="3" cy="3" r="1.5" fill="currentColor"/>
+                          <circle cx="3" cy="9" r="1.5" fill="currentColor"/>
+                          <circle cx="3" cy="15" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="3" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
+                          <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
+                        </svg>
+                      </div>
+                    </td>
+                  }
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
@@ -190,6 +215,8 @@ export class TaskListComponent implements OnInit {
   jiraApi = inject(JiraApiService);
   private gameService = inject(GameService);
   private sanitizer = inject(DomSanitizer);
+  private modalService = inject(ModalService);
+  private toastService = inject(ToastService);
 
   jiraSites = signal<any[]>([]);
   selectedJiraSite = signal<string>(localStorage.getItem('JIRA_SELECTED_SITE') || '');
@@ -218,7 +245,14 @@ export class TaskListComponent implements OnInit {
       next: (data) => {
         this.jiraSites.set(data);
       },
-      error: (err) => console.error('Failed to load Jira sites', err)
+      error: (err) => {
+        console.error('Failed to load Jira sites', err);
+        if (err?.status === 401) {
+          this.toastService.warning('Jira session expired. Please reconnect.');
+        } else {
+          this.toastService.error('Could not load Jira sites. Check your connection.');
+        }
+      }
     });
   }
 
@@ -287,13 +321,13 @@ export class TaskListComponent implements OnInit {
     // Check for duplicates
     if (jiraKey) {
       if (this.tasks().some(t => t.jiraKey === jiraKey)) {
-        alert('This story is already in the list!');
+        this.toastService.warning('This story is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
     } else {
       if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
-        alert('This task is already in the list!');
+        this.toastService.warning('This task is already in the list!');
         this.newTaskDescription.set('');
         return;
       }
@@ -332,7 +366,7 @@ export class TaskListComponent implements OnInit {
         } catch (e: any) {
           console.error('Failed to auto-fetch Jira details', e);
           if (e?.status === 401) {
-            alert('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
+            this.toastService.error('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
           }
         } finally {
           this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
@@ -353,7 +387,13 @@ export class TaskListComponent implements OnInit {
   }
 
   async deleteTask(taskId: string) {
-    if (confirm('Are you sure you want to remove this task?')) {
+    const confirmed = await this.modalService.confirm(
+      'Remove Task',
+      'Are you sure you want to remove this task?',
+      'Remove',
+      'Cancel'
+    );
+    if (confirmed) {
       try {
         await this.gameService.deleteTask(this.roomId(), taskId);
       } catch (e) {
@@ -410,7 +450,7 @@ export class TaskListComponent implements OnInit {
       console.error('Failed to sync to Jira', e);
       const errorBody = e?.error;
       const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
-      alert(`Jira Sync Failed for ${task.jiraKey}:\n${msg}`);
+      this.toastService.error(`Jira Sync Failed for ${task.jiraKey}: ${msg}`);
       await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
     }
   }
@@ -427,4 +467,20 @@ export class TaskListComponent implements OnInit {
     }
     this.isSyncingAll.set(false);
   }
+
+  async drop(event: CdkDragDrop<Task[]>) {
+    if (!this.isHost()) return;
+    if (event.previousIndex === event.currentIndex) return;
+
+    const reordered = [...this.tasks()];
+    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+
+    try {
+      await this.gameService.reorderTasks(this.roomId(), reordered);
+    } catch (e) {
+      console.error('Failed to reorder tasks', e);
+      this.toastService.error('Failed to reorder tasks. Please try again.');
+    }
+  }
 }
+

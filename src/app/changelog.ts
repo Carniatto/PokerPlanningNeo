@@ -13,7 +13,9 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Seo improvement",
       "Seo fix"
     ],
-    "fixes": []
+    "fixes": [
+      "Rearrange stories"
+    ]
   },
   {
     "version": "2026.05.27",
