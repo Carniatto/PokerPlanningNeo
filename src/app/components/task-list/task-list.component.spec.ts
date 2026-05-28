@@ -20,3 +20,31 @@ describe('TaskListComponent - getParsedIssueKey', () => {
     expect(key).toBe('');
   });
 });
+
+describe('TaskListComponent - normalizeJiraUrl', () => {
+  const normalizeJiraUrl = TaskListComponent.prototype.normalizeJiraUrl;
+
+  it('should pass through clean https URLs', () => {
+    expect(normalizeJiraUrl('https://company.atlassian.net/browse/JIRA-1234'))
+      .toBe('https://company.atlassian.net/browse/JIRA-1234');
+  });
+
+  it('should normalize double protocol prefix https://https://', () => {
+    expect(normalizeJiraUrl('https://https://company.atlassian.net/browse/JIRA-1234'))
+      .toBe('https://company.atlassian.net/browse/JIRA-1234');
+  });
+
+  it('should normalize malformed double protocol prefix https://https//', () => {
+    expect(normalizeJiraUrl('https://https//company.atlassian.net/browse/JIRA-1234'))
+      .toBe('https://company.atlassian.net/browse/JIRA-1234');
+  });
+
+  it('should handle prefixing a plain domain', () => {
+    expect(normalizeJiraUrl('company.atlassian.net/browse/JIRA-1234'))
+      .toBe('https://company.atlassian.net/browse/JIRA-1234');
+  });
+
+  it('should return empty string for empty input', () => {
+    expect(normalizeJiraUrl('')).toBe('');
+  });
+});

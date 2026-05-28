@@ -311,6 +311,16 @@ export class TaskListComponent implements OnInit {
     return '';
   }
 
+  normalizeJiraUrl(url: string): string {
+    if (!url) return '';
+    const protocolMatch = url.match(/^(?:https?:?\/*)+/i);
+    if (protocolMatch) {
+      const cleanPath = url.substring(protocolMatch[0].length);
+      return `https://${cleanPath}`;
+    }
+    return `https://${url}`;
+  }
+
   async addTask() {
     const desc = this.newTaskDescription().trim();
     if (!desc) return;
@@ -346,7 +356,7 @@ export class TaskListComponent implements OnInit {
       }
 
       const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
-      const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
+      const jiraUrl = this.normalizeJiraUrl(desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`);
 
       jiraMeta = {
         jiraKey,
