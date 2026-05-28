@@ -15,7 +15,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Seo rewrite fix"
     ],
     "fixes": [
-      "Normalize Jira task URLs to prevent duplicate protocol prefixes"
+      "Normalize Jira task URLs to prevent duplicate protocol prefixes",
+      "Rearrange stories"
     ]
   },
   {
