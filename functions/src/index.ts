@@ -1,5 +1,7 @@
 import * as admin from "firebase-admin";
 import * as corsLib from "cors";
+import * as fs from "fs";
+import * as path from "path";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
@@ -222,3 +224,66 @@ export const jiraApiProxy = onRequest((req, res) => {
         }
     });
 });
+
+export const roomSEO = onRequest(async (req, res) => {
+    const pathParts = req.path.split('/').filter(Boolean);
+    let roomId = "";
+    
+    // If request path is /room/ABCDEF, pathParts will be ['room', 'ABCDEF']
+    // If it's rewritten and just /ABCDEF, pathParts will be ['ABCDEF']
+    if (pathParts.length > 0) {
+        if (pathParts[0] === 'room') {
+            roomId = pathParts[1] || "";
+        } else {
+            roomId = pathParts[0];
+        }
+    }
+    
+    roomId = roomId.split('?')[0].trim().toUpperCase();
+
+    let title = "Poker Planner Neo - Agile Estimation Tool";
+    let description = "Collaborative, real-time poker planning and agile estimation tool. Work together seamlessly with your team.";
+
+    if (roomId && roomId.length >= 3) {
+        try {
+            const roomSnap = await admin.firestore().collection("rooms").doc(roomId).get();
+            if (roomSnap.exists) {
+                const roomData = roomSnap.data();
+                if (roomData) {
+                    const roomName = roomData.roomName || "Planning Session";
+                    const hostId = roomData.hostId;
+                    const players = roomData.players || [];
+                    const hostPlayer = players.find((p: any) => p.id === hostId);
+                    const hostName = hostPlayer ? hostPlayer.name : "A teammate";
+                    
+                    title = `${roomName} - Poker Planning Neo`;
+                    description = `${hostName} has created a poker planning session. Click to join and start estimating together!`;
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching room details for SEO:", err);
+        }
+    }
+
+    let html = "";
+    try {
+        const indexPath = path.join(__dirname, "index.html");
+        html = fs.readFileSync(indexPath, "utf8");
+    } catch (err) {
+        console.error("Error reading index.html:", err);
+        res.status(500).send("Internal Server Error: Missing index template");
+        return;
+    }
+
+    // Replace meta tags dynamically
+    html = html.replace(/<title>[^<]*<\/title>/g, `<title>${title}</title>`);
+    html = html.replace(/<meta name="description" content="[^"]*"/g, `<meta name="description" content="${description}"`);
+    html = html.replace(/<meta property="og:title" content="[^"]*"/g, `<meta property="og:title" content="${title}"`);
+    html = html.replace(/<meta property="og:description" content="[^"]*"/g, `<meta property="og:description" content="${description}"`);
+    html = html.replace(/<meta name="twitter:title" content="[^"]*"/g, `<meta name="twitter:title" content="${title}"`);
+    html = html.replace(/<meta name="twitter:description" content="[^"]*"/g, `<meta name="twitter:description" content="${description}"`);
+
+    res.setHeader("Content-Type", "text/html");
+    res.status(200).send(html);
+});
+

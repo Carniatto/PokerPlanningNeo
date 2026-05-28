@@ -1,6 +1,6 @@
 {
   "name": "poker-planning-neo",
-  "version": "2026.05.27",
+  "version": "2026.05.28",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
