@@ -1,18 +1,14 @@
 import { Component, input, output, signal, inject, computed, OnInit, effect } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import { CdkDropList, CdkDrag, CdkDragHandle, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { JiraAuthService } from '../../services/jira-auth.service';
 import { JiraApiService } from '../../services/jira-api.service';
 import { firstValueFrom } from 'rxjs';
 import { Task, GameService } from '../../game.service';
-import { ModalService } from '../../services/modal.service';
-import { ToastService } from '../../services/toast.service';
-
 
 @Component({
   selector: 'neo-task-list',
-  imports: [FormsModule, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [FormsModule],
   template: `
     <div class="task-list-container glass-panel">
       <div class="list-header-row">
@@ -47,32 +43,17 @@ import { ToastService } from '../../services/toast.service';
           }
         </div>
         @if (isHost()) {
-          <div class="add-task-form-wrapper">
-            <div class="add-task-form">
-              <input 
-                type="text" 
-                [(ngModel)]="newTaskDescription" 
-                (keyup.enter)="addTask()"
-                (focus)="isInputFocused.set(true)"
-                (blur)="onInputBlur()"
-                placeholder="Jira URL/key [description] or plain task..." 
-                class="add-task-input"
-              />
-              <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
-                Add Task
-              </button>
-            </div>
-            @if (showFeatureTip() && isInputFocused()) {
-              <div class="feature-tip-popover glass-panel">
-                <div class="tip-header">
-                  <span>💡 Tip: Add Jira Link + Description</span>
-                  <button class="btn-close-tip" (click)="dismissFeatureTip()">×</button>
-                </div>
-                <p>You can paste a Jira link followed by a space and a custom description, like:</p>
-                <code>https://company.atlassian.net/browse/JIRA-1234 My custom task description</code>
-                <p>If Jira is connected, we'll fetch the official summary from Jira. Otherwise, we'll use your custom text as the fallback summary!</p>
-              </div>
-            }
+          <div class="add-task-form">
+            <input 
+              type="text" 
+              [(ngModel)]="newTaskDescription" 
+              (keyup.enter)="addTask()"
+              placeholder="Jira URL or Task description..." 
+              class="add-task-input"
+            />
+            <button (click)="addTask()" class="btn-add" [disabled]="!newTaskDescription().trim()">
+              Add Task
+            </button>
           </div>
         }
       </div>
@@ -86,9 +67,6 @@ import { ToastService } from '../../services/toast.service';
           <table class="tasks-table">
             <thead>
               <tr>
-                @if (isHost()) {
-                  <th class="col-drag"></th>
-                }
                 <th class="col-desc">TASK ID / NAME</th>
                 <th class="col-estimate text-right">ESTIMATE</th>
                 @if (isHost()) {
@@ -96,23 +74,14 @@ import { ToastService } from '../../services/toast.service';
                 }
               </tr>
             </thead>
-            <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+            <tbody>
               @for (lTask of loadingTasks(); track lTask.id) {
                 <tr class="loading-row">
-                  @if (isHost()) {
-                    <td class="col-drag"></td>
-                  }
                   <td class="task-desc">
                     <div class="jira-task-badge-wrapper">
-                        @if (getJiraBadgeUrl(lTask)) {
-                            <a [href]="getJiraBadgeUrl(lTask)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                                {{ lTask.jiraKey }}
-                            </a>
-                        } @else {
-                            <span class="jira-key-badge-secondary" title="No link provided">
-                                {{ lTask.jiraKey }}
-                            </span>
-                        }
+                        <a [href]="lTask.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                            {{ lTask.jiraKey }}
+                        </a>
                         <span class="jira-summary skeleton-text"></span>
                     </div>
                   </td>
@@ -128,35 +97,13 @@ import { ToastService } from '../../services/toast.service';
               @for (task of tasks(); track task.id) {
                 <tr [class.active]="isActive(task)" 
                     (click)="isHost() ? (isActive(task) ? selectForEstimation(null) : selectForEstimation(task)) : null" 
-                    [class.clickable]="isHost()"
-                    cdkDrag
-                    [cdkDragDisabled]="!isHost()">
-                  @if (isHost()) {
-                    <td class="col-drag" (click)="$event.stopPropagation()">
-                      <div class="drag-handle" cdkDragHandle title="Drag to reorder">
-                        <svg width="12" height="18" viewBox="0 0 12 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="3" cy="3" r="1.5" fill="currentColor"/>
-                          <circle cx="3" cy="9" r="1.5" fill="currentColor"/>
-                          <circle cx="3" cy="15" r="1.5" fill="currentColor"/>
-                          <circle cx="9" cy="3" r="1.5" fill="currentColor"/>
-                          <circle cx="9" cy="9" r="1.5" fill="currentColor"/>
-                          <circle cx="9" cy="15" r="1.5" fill="currentColor"/>
-                        </svg>
-                      </div>
-                    </td>
-                  }
+                    [class.clickable]="isHost()">
                   <td class="task-desc">
                     @if (task.jiraKey) {
                         <div class="jira-task-badge-wrapper">
-                            @if (getJiraBadgeUrl(task)) {
-                                <a [href]="getJiraBadgeUrl(task)" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
-                                    {{ task.jiraKey }}
-                                </a>
-                            } @else {
-                                <span class="jira-key-badge-secondary" title="No link provided">
-                                    {{ task.jiraKey }}
-                                </span>
-                            }
+                            <a [href]="task.jiraUrl" target="_blank" class="jira-key-badge" (click)="$event.stopPropagation()">
+                                {{ task.jiraKey }}
+                            </a>
                             <span class="jira-summary" [class.skeleton-text]="refreshingTasks().has(task.id)" [title]="task.jiraSummary">
                                 {{ refreshingTasks().has(task.id) ? '' : task.jiraSummary }}
                             </span>
@@ -235,7 +182,7 @@ export class TaskListComponent implements OnInit {
   selectTask = output<Task | null>();
 
   newTaskDescription = signal('');
-  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl?: string }[]>([]);
+  loadingTasks = signal<{ id: string, jiraKey: string, jiraUrl: string }[]>([]);
   refreshingTasks = signal<Set<string>>(new Set());
   estimateOptions = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
@@ -243,16 +190,12 @@ export class TaskListComponent implements OnInit {
   jiraApi = inject(JiraApiService);
   private gameService = inject(GameService);
   private sanitizer = inject(DomSanitizer);
-  private modalService = inject(ModalService);
-  private toastService = inject(ToastService);
 
   jiraSites = signal<any[]>([]);
   selectedJiraSite = signal<string>(localStorage.getItem('JIRA_SELECTED_SITE') || '');
   jiraSpField = signal<string>(localStorage.getItem('JIRA_SP_FIELD') || 'customfield_10016');
   showJiraSettings = signal(false);
   isSyncingAll = signal(false);
-  showFeatureTip = signal(localStorage.getItem('NEO_TASK_INPUT_TIP_SEEN') !== 'true');
-  isInputFocused = signal(false);
 
   constructor() {
     effect(() => {
@@ -272,35 +215,16 @@ export class TaskListComponent implements OnInit {
 
   loadJiraSites() {
     this.jiraApi.getAccessibleResources().subscribe({
-        next: (data) => {
-            this.jiraSites.set(data);
-            const selectedId = this.selectedJiraSite();
-            const selectedSite = data.find(s => s.id === selectedId) || data[0];
-            if (selectedSite && selectedSite.url) {
-                const domain = selectedSite.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-                localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
-            }
-        },
-        error: (err) => {
-            console.error('Failed to load Jira sites', err);
-            if (err?.status === 401) {
-                // Token was cleared by the API service — UI will revert to "Connect Jira"
-                this.toastService.warning('Jira session expired. Please reconnect.');
-            } else {
-                this.toastService.error('Could not load Jira sites. Check your connection.');
-            }
-        }
+      next: (data) => {
+        this.jiraSites.set(data);
+      },
+      error: (err) => console.error('Failed to load Jira sites', err)
     });
   }
 
   updateJiraSite(siteId: string) {
     this.selectedJiraSite.set(siteId);
     localStorage.setItem('JIRA_SELECTED_SITE', siteId);
-    const site = this.jiraSites().find(s => s.id === siteId);
-    if (site && site.url) {
-        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domain);
-    }
   }
 
   updateJiraSpField(field: string) {
@@ -311,18 +235,6 @@ export class TaskListComponent implements OnInit {
   disconnectJira() {
     this.jiraAuth.logout();
     this.showJiraSettings.set(false);
-  }
-
-  dismissFeatureTip() {
-    localStorage.setItem('NEO_TASK_INPUT_TIP_SEEN', 'true');
-    this.showFeatureTip.set(false);
-  }
-
-  onInputBlur() {
-    // Delay slightly to let clicks on the close button register
-    setTimeout(() => {
-      this.isInputFocused.set(false);
-    }, 200);
   }
 
   getEstimateColorClass(value: string): string {
@@ -365,125 +277,62 @@ export class TaskListComponent implements OnInit {
     return '';
   }
 
-  parseTaskInput(input: string): { jiraKey: string; jiraUrl: string; remainingText: string } {
-    const trimmed = input.trim();
-    let jiraKey = '';
-    let jiraUrl = '';
-    let remainingText = trimmed;
-
-    // 1. Check if there is a Jira URL in the input (e.g. contains "/browse/KEY-123")
-    const browseMatch = trimmed.match(/(https?:\/\/[^\s]*\/browse\/([A-Za-z0-9]+-[0-9]+)[^\s]*)/i);
-    if (browseMatch) {
-      jiraUrl = browseMatch[1];
-      jiraKey = browseMatch[2].toUpperCase();
-      // Remove the URL from the description
-      remainingText = trimmed.replace(jiraUrl, '').replace(/\s+/g, ' ').trim();
-    } else {
-      // 2. Check if the first word/token matches a Jira key pattern (e.g. KEY-123)
-      const firstSpaceIdx = trimmed.indexOf(' ');
-      const firstToken = firstSpaceIdx !== -1 ? trimmed.substring(0, firstSpaceIdx).trim() : trimmed;
-      const keyMatch = firstToken.match(/^([A-Za-z0-9]+-[0-9]+)$/);
-      if (keyMatch) {
-        jiraKey = keyMatch[1].toUpperCase();
-        remainingText = firstSpaceIdx !== -1 ? trimmed.substring(firstSpaceIdx + 1).trim() : '';
-      }
-    }
-
-    return { jiraKey, jiraUrl, remainingText };
-  }
-
-  getJiraBadgeUrl(task: { jiraKey?: string; jiraUrl?: string }): string | null {
-    if (task.jiraUrl) return task.jiraUrl;
-    if (this.jiraAuth.accessToken() && task.jiraKey) {
-      // First try to find the URL of the selected site
-      const selectedId = this.selectedJiraSite();
-      const site = this.jiraSites().find(s => s.id === selectedId);
-      if (site && site.url) {
-        const domain = site.url.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-        return `https://${domain}/browse/${task.jiraKey}`;
-      }
-
-      // Fallback to NEO_LAST_JIRA_DOMAIN from localStorage
-      const lastDomain = localStorage.getItem('NEO_LAST_JIRA_DOMAIN');
-      if (lastDomain) {
-        return `https://${lastDomain}/browse/${task.jiraKey}`;
-      }
-    }
-    return null;
-  }
-
   async addTask() {
-    const rawInput = this.newTaskDescription().trim();
-    if (!rawInput) return;
-
-    const parsed = this.parseTaskInput(rawInput);
-
-    // Check for duplicates
-    if (parsed.jiraKey) {
-      if (this.tasks().some(t => t.jiraKey === parsed.jiraKey)) {
-        this.toastService.warning('This story is already in the list!');
-        this.newTaskDescription.set('');
-        return;
-      }
-    } else {
-      if (this.tasks().some(t => t.description.toLowerCase() === rawInput.toLowerCase())) {
-        this.toastService.warning('This task is already in the list!');
-        this.newTaskDescription.set('');
-        return;
-      }
-    }
+    const desc = this.newTaskDescription().trim();
+    if (!desc) return;
 
     let jiraMeta: any = undefined;
+    const jiraKey = this.getParsedIssueKey(desc);
 
-    if (parsed.jiraKey) {
+    // Check for duplicates
+    if (jiraKey) {
+      if (this.tasks().some(t => t.jiraKey === jiraKey)) {
+        alert('This story is already in the list!');
+        this.newTaskDescription.set('');
+        return;
+      }
+    } else {
+      if (this.tasks().some(t => t.description.toLowerCase() === desc.toLowerCase())) {
+        alert('This task is already in the list!');
+        this.newTaskDescription.set('');
+        return;
+      }
+    }
+
+    if (jiraKey) {
       const loadingId = Math.random().toString(36).substring(7);
       let cloudId = this.selectedJiraSite();
-      
-      const urlToUse = parsed.jiraUrl || rawInput.split(' ')[0];
-      let domainFromUrl = '';
-      if (urlToUse.includes('.atlassian.net')) {
-        const match = urlToUse.match(/https?:\/\/([^/]+)/);
+      if (desc.includes('.atlassian.net')) {
+        const match = desc.match(/https?:\/\/([^/]+)/);
         if (match && match[1]) {
-          domainFromUrl = match[1].toLowerCase();
-          localStorage.setItem('NEO_LAST_JIRA_DOMAIN', domainFromUrl);
-          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domainFromUrl));
+          const domain = match[1].toLowerCase();
+          const matchingSite = this.jiraSites().find(s => s.url.toLowerCase().includes(domain));
           if (matchingSite) cloudId = matchingSite.id;
         }
       }
 
-      // Only set jiraUrl if we have a connection or if a full link was typed
-      let jiraUrl: string | undefined = undefined;
-      if (parsed.jiraUrl) {
-        jiraUrl = parsed.jiraUrl;
-      } else {
-        const connectedSiteUrl = this.jiraSites().find(s => s.id === cloudId)?.url;
-        if (connectedSiteUrl) {
-          const domain = connectedSiteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-          jiraUrl = `https://${domain}/browse/${parsed.jiraKey}`;
-        }
-      }
+      const defaultDomain = desc.includes('.atlassian.net') ? desc.match(/https?:\/\/([^/]+)/)?.[1] || 'domain.atlassian.net' : 'domain.atlassian.net';
+      const jiraUrl = desc.startsWith('http') ? desc : `https://${this.jiraSites().find(s => s.id === cloudId)?.url || defaultDomain}/browse/${jiraKey}`;
 
       jiraMeta = {
-        jiraKey: parsed.jiraKey,
-        jiraSummary: parsed.remainingText || (this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary')
+        jiraKey,
+        jiraSummary: this.jiraAuth.accessToken() ? 'Failed to fetch summary' : 'Log in to fetch summary',
+        jiraUrl
       };
-      if (jiraUrl) {
-        jiraMeta.jiraUrl = jiraUrl;
-      }
 
       if (this.jiraAuth.accessToken()) {
-        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey: parsed.jiraKey, jiraUrl }]);
+        this.loadingTasks.update(lt => [...lt, { id: loadingId, jiraKey, jiraUrl }]);
         this.newTaskDescription.set('');
 
         try {
           if (cloudId) {
-            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, parsed.jiraKey));
-            jiraMeta.jiraSummary = issue.fields?.summary || parsed.remainingText || 'No summary';
+            const issue: any = await firstValueFrom(this.jiraApi.getIssue(cloudId, jiraKey));
+            jiraMeta.jiraSummary = issue.fields?.summary || 'No summary';
           }
         } catch (e: any) {
           console.error('Failed to auto-fetch Jira details', e);
           if (e?.status === 401) {
-            this.toastService.error('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
+            alert('Your Jira token might be expired. Please click Jira Connected -> Disconnect, and connect again.');
           }
         } finally {
           this.loadingTasks.update(lt => lt.filter(t => t.id !== loadingId));
@@ -496,7 +345,7 @@ export class TaskListComponent implements OnInit {
     }
 
     try {
-      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : rawInput;
+      const finalDesc = jiraMeta ? `${jiraMeta.jiraKey}: ${jiraMeta.jiraSummary}` : desc;
       await this.gameService.addTask(this.roomId(), finalDesc, jiraMeta);
     } catch (e) {
       console.error('Failed to add task', e);
@@ -504,13 +353,7 @@ export class TaskListComponent implements OnInit {
   }
 
   async deleteTask(taskId: string) {
-    const confirmed = await this.modalService.confirm(
-      'Remove Task',
-      'Are you sure you want to remove this task?',
-      'Remove',
-      'Cancel'
-    );
-    if (confirmed) {
+    if (confirm('Are you sure you want to remove this task?')) {
       try {
         await this.gameService.deleteTask(this.roomId(), taskId);
       } catch (e) {
@@ -518,7 +361,6 @@ export class TaskListComponent implements OnInit {
       }
     }
   }
-
 
   async updateEstimate(taskId: string, estimate: string) {
     try {
@@ -568,7 +410,7 @@ export class TaskListComponent implements OnInit {
       console.error('Failed to sync to Jira', e);
       const errorBody = e?.error;
       const msg = errorBody?.errorMessages?.join(', ') || JSON.stringify(errorBody?.errors) || e.message || 'Unknown error';
-      this.toastService.error(`Jira Sync Failed for ${task.jiraKey}: ${msg}`);
+      alert(`Jira Sync Failed for ${task.jiraKey}:\n${msg}`);
       await this.gameService.updateTaskJiraSyncStatus(this.roomId(), task.id, 'failed');
     }
   }
@@ -584,20 +426,5 @@ export class TaskListComponent implements OnInit {
       await this.syncIndividualTask(task);
     }
     this.isSyncingAll.set(false);
-  }
-
-  async drop(event: CdkDragDrop<Task[]>) {
-    if (!this.isHost()) return;
-    if (event.previousIndex === event.currentIndex) return;
-
-    const reordered = [...this.tasks()];
-    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
-
-    try {
-      await this.gameService.reorderTasks(this.roomId(), reordered);
-    } catch (e) {
-      console.error('Failed to reorder tasks', e);
-      this.toastService.error('Failed to reorder tasks. Please try again.');
-    }
   }
 }

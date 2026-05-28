@@ -40,7 +40,12 @@ import { ChangelogService } from './services/changelog.service';
       </main>
       
       <footer class="app-footer">
-        <p>&copy; 2025 Poker Planning Neo. All rights reserved.</p>
+        <div class="footer-links">
+          <a routerLink="/privacy">Privacy Policy</a>
+          <span class="separator">|</span>
+          <a routerLink="/terms">Terms of Service</a>
+        </div>
+        <p>&copy; 2026 Tundra Cube. All rights reserved.</p>
       </footer>
     </div>
   `,
@@ -181,6 +186,31 @@ import { ChangelogService } from './services/changelog.service';
       padding: 2rem;
       color: var(--text-muted);
       font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--neon-cyan);
+    }
+
+    .separator {
+      color: var(--text-muted);
+      opacity: 0.5;
     }
 
     @media (max-width: 768px) {

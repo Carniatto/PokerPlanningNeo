@@ -8,6 +8,10 @@ describe('HowItWorksComponent', () => {
   let fixture: ComponentFixture<HowItWorksComponent>;
 
   beforeEach(async () => {
+    TestBed.overrideComponent(HowItWorksComponent, {
+      set: { styles: [], styleUrls: [] }
+    });
+
     await TestBed.configureTestingModule({
       imports: [HowItWorksComponent],
       providers: [provideRouter([])]
