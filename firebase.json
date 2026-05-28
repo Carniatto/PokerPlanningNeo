@@ -22,8 +22,10 @@
         "rewrites": [
             {
                 "source": "/room/**",
-                "function": "roomSEO",
-                "region": "europe-west1"
+                "function": {
+                    "function": "roomSEO",
+                    "region": "europe-west1"
+                }
             },
             {
                 "source": "**",
