@@ -1,4 +1,5 @@
 import '@angular/compiler';
+import { describe, it, expect } from 'vitest';
 import { TaskListComponent } from './task-list.component';
 
 describe('TaskListComponent - getParsedIssueKey', () => {
