@@ -31,5 +31,7 @@ jobs:
           };
           EOF
       - run: pnpm install && pnpm run build
+      - name: Build Functions
+        run: pnpm --prefix functions install && pnpm --prefix functions run build
       - name: Deploy to Firebase
-        run: pnpm exec firebase deploy --except functions --project pokerplanningneo --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive
+        run: pnpm exec firebase deploy --project pokerplanningneo --token ${{ secrets.FIREBASE_TOKEN }} --non-interactive

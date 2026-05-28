@@ -10,7 +10,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     "version": "2026.05.28",
     "date": "2026-05-28",
     "features": [
-      "Seo improvement"
+      "Seo improvement",
+      "Seo fix"
     ],
     "fixes": []
   },
